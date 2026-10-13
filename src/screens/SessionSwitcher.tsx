@@ -15,17 +15,19 @@ import {
   isTmuxUsable,
   mergeSessions,
   nextSessionAction,
+  targetForLiveSession,
   SessionsApi,
   type LiveSession,
   type PersistedSession,
   type SessionsResponse,
 } from "@/agent/sessionsApi";
 import { CommandsApi } from "@/agent/commandsApi";
+import type { SessionTarget } from "@/agent/AgentProvider";
 import { useSettings } from "@/state/SettingsProvider";
 
 interface Props {
   currentSessionId: string | null;
-  onAttach: (session: { mode: "pty" | "tmux"; slug?: string }) => void;
+  onAttach: (session: SessionTarget) => void;
   onClose: () => void;
 }
 
@@ -148,7 +150,7 @@ export function SessionSwitcher({ currentSessionId, onAttach, onClose }: Props) 
                 key={session.id}
                 session={session}
                 current={session.id === currentSessionId}
-                onAttach={() => onAttach({ mode: session.mode, slug: session.slug ?? undefined })}
+                onAttach={() => onAttach(targetForLiveSession(session))}
                 onAction={() => void act(session.id, nextSessionAction(session))}
               />
             ))
@@ -188,9 +190,14 @@ function LiveRow({
   const action = nextSessionAction(session);
   return (
     <View style={styles.row}>
-      <TouchableOpacity style={styles.rowMain} onPress={onAttach} accessibilityRole="button">
+      <TouchableOpacity
+        style={styles.rowMain}
+        onPress={onAttach}
+        accessibilityRole="button"
+        disabled={current}
+      >
         <Text style={styles.rowName}>
-          {session.slug ?? session.id.slice(0, 8)}
+          {session.slug ?? `shell ${session.id.slice(0, 8)}`}
           {current ? "  (here)" : ""}
         </Text>
         <Text style={styles.rowHint}>

@@ -267,6 +267,20 @@ Live rows show **Detach** (keep the session) or **Kill** (delete it). Detached s
 persisted list, where **Remove** deletes them, since a detached session no longer has a session id
 to kill by.
 
+Switching to an open session reconnects to that session's id rather than creating a new one, so
+tapping around in the switcher never multiplies rows. Switch away from a `pty` session and it stays
+alive for `SH_DETACH_GRACE`, so coming back within a couple of minutes replays whatever it printed
+while you were away. The row you are already on is marked **(here)** and is not tappable, since
+switching to it would be a no-op.
+
+## Terminal size
+
+The terminal measures itself and reports the grid to the agent, which resizes the remote shell to
+match. That first measurement lands before the socket exists, so the app records the geometry and
+replays it as soon as the connection opens — without that the shell keeps rendering for the default
+80x24 inside a phone-sized viewport, and anything below the status line is wasted space. The size in
+the header is the grid the terminal actually measured, not what the shell was told.
+
 ## Reconnecting
 
 The agent holds each session for `SH_DETACH_GRACE` (2 min) after a disconnect, so `?resume=<seq>`

@@ -22,6 +22,16 @@ export interface SessionsResponse {
   max_sessions: number;
 }
 
+export interface SessionTarget {
+  mode: "pty" | "tmux";
+  slug?: string;
+  /**
+   * An existing session to switch to. When set, the client reconnects to that id
+   * instead of creating a new session, so switching never spawns a duplicate.
+   */
+  sessionId?: string;
+}
+
 export interface SessionRequest {
   cols: number;
   rows: number;
@@ -57,5 +67,19 @@ export function mergeSessions(health: SessionsResponse): SessionsResponse {
   return {
     ...health,
     persisted: health.persisted.filter((session) => !liveSlugs.has(session.slug)),
+  };
+}
+
+/**
+ * Where tapping a session row should take us.
+ *
+ * A live row is already an open session, so it switches by id. Only rows describing
+ * something not yet running -- a new shell, or a persisted tmux session -- create.
+ */
+export function targetForLiveSession(session: LiveSession): SessionTarget {
+  return {
+    mode: session.mode,
+    ...(session.slug ? { slug: session.slug } : {}),
+    sessionId: session.id,
   };
 }

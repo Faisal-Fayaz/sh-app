@@ -1,17 +1,17 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { AgentClient, type AgentFrame, type AgentStatus, normalizeHost } from "@/agent/AgentClient";
+import type { SessionTarget } from "@/agent/sessionModel";
 import { useSettings } from "@/state/SettingsProvider";
+
+export type { SessionTarget };
 
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
 
 type FrameListener = (frame: AgentFrame) => void;
 
-export interface SessionTarget {
-  mode: "pty" | "tmux";
-  slug?: string;
-}
+
 
 interface AgentContextValue {
   status: AgentStatus;
@@ -80,6 +80,10 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [sessionSlug, setSessionSlug] = useState<string | null>(null);
   const [target, setTarget] = useState<SessionTarget>({ mode: "pty" });
   const generation = useRef(0);
+  // Last byte offset seen per session, so switching away and back replays the gap
+  // instead of dropping whatever the shell printed while we were on another session.
+  const resumeOffsets = useRef(new Map<string, number>());
+  const activeId = useRef<string | null>(null);
   const [grid, setGrid] = useState({ cols: DEFAULT_COLS, rows: DEFAULT_ROWS });
 
   const dismissNotice = useCallback(() => setNotice(null), []);
@@ -105,6 +109,9 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       port: Number(settings.port) || 8765,
       token: settings.token,
       onFrame: (frame) => {
+        if (frame.type === "stdout" && typeof frame.seq === "number" && activeId.current) {
+          resumeOffsets.current.set(activeId.current, frame.seq);
+        }
         for (const listener of listenersRef.current) listener(frame);
       },
       onStatus: (next, info) => {
@@ -117,7 +124,20 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
+        if (target.sessionId) {
+          // Switching to a session that is already open. Reconnect to its id so the
+          // agent keeps one session per shell instead of growing a new one per tap.
+          client.attachExisting(target.sessionId, resumeOffsets.current.get(target.sessionId) ?? null);
+          activeId.current = target.sessionId;
+          if (cancelled) return;
+          setSessionId(target.sessionId);
+          setSessionMode(target.mode);
+          setSessionSlug(target.slug ?? null);
+          client.connect();
+          return;
+        }
         const session = await client.createSession(DEFAULT_COLS, DEFAULT_ROWS, target);
+        activeId.current = session.id;
         if (cancelled) return;
         setSessionId(session.id);
         setSessionMode(session.mode === "tmux" ? "tmux" : "pty");

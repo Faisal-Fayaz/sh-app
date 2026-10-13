@@ -95,6 +95,18 @@ export class AgentClient {
     this.openSocket();
   }
 
+  /**
+   * Point this client at a session the agent is already holding.
+   *
+   * Creating a new session is the wrong move when switching between ones that are
+   * already open: it leaves the old one behind and, for an unnamed shell, produces a
+   * duplicate row every tap. Reconnecting to the id resumes that exact session instead.
+   */
+  attachExisting(sessionId: string, resumeOffset: number | null = null): void {
+    this.sessionId = sessionId;
+    this.resumeOffset = resumeOffset;
+  }
+
   get attemptCount(): number {
     return this.attempt;
   }
@@ -143,6 +155,12 @@ export class AgentClient {
     socket.onopen = () => {
       this.attempt = 0;
       this.options.onStatus("open");
+      // The terminal measures itself before the socket exists, so its first resize was
+      // dropped. Re-send the geometry we know, or the remote shell keeps rendering for
+      // the default 80x24 inside whatever viewport we actually have.
+      if (this.lastCols > 0 && this.lastRows > 0) {
+        this.send({ type: "resize", cols: this.lastCols, rows: this.lastRows });
+      }
     };
 
     socket.onmessage = (event) => {

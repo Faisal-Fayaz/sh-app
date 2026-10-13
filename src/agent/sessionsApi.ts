@@ -3,11 +3,18 @@ import type { SessionRequest, SessionsResponse } from "./sessionModel";
 
 export type {
   LiveSession,
+  SessionTarget,
   PersistedSession,
   SessionRequest,
   SessionsResponse,
 } from "./sessionModel";
-export { describeSession, isTmuxUsable, mergeSessions, nextSessionAction } from "./sessionModel";
+export {
+  describeSession,
+  isTmuxUsable,
+  mergeSessions,
+  nextSessionAction,
+  targetForLiveSession,
+} from "./sessionModel";
 
 export class SessionsApi {
   constructor(private readonly base: CommandsApi) {}

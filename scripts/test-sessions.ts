@@ -3,6 +3,7 @@ import {
   isTmuxUsable,
   mergeSessions,
   nextSessionAction,
+  targetForLiveSession,
   type LiveSession,
   type SessionsResponse,
 } from "../src/agent/sessionModel";
@@ -112,6 +113,21 @@ check(ptys.live.length === 2, "unnamed pty sessions coexist");
 check(ptys.persisted.length === 0, "pty sessions have nothing to merge against");
 const empty = mergeSessions(listing([], [stored("solo")]));
 check(empty.persisted.length === 1, "a detached-only session still shows");
+
+// Tapping a row must switch to the session behind it, not mint a new one.
+const liveTarget = targetForLiveSession({ ...session({ mode: "pty" }), id: "abc123def" });
+check(liveTarget.sessionId === "abc123def", "a live row switches by session id");
+
+const tmuxTarget = targetForLiveSession({
+  ...session({ mode: "tmux", slug: "demo" }),
+  id: "deadbeef",
+});
+check(tmuxTarget.sessionId === "deadbeef", "a live tmux row switches by id too");
+check(tmuxTarget.slug === "demo", "the slug travels with the switch");
+check(tmuxTarget.mode === "tmux", "the mode travels with the switch");
+
+const namedTarget = targetForLiveSession({ ...session({ mode: "pty", slug: "x" }), id: "i" });
+check(namedTarget.sessionId === "i", "a row with a slug still switches by id");
 
 console.log(`\n${passed}/${passed + failed} assertions passed`);
 for (const label of failures) console.log(`[FAIL] ${label}`);

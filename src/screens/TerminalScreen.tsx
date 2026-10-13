@@ -47,6 +47,7 @@ export function TerminalScreen({
     detail,
     notice,
     dismissNotice,
+    sessionId,
     sessionSlug,
     sessionMode,
     grid,
@@ -96,6 +97,10 @@ export function TerminalScreen({
           setLoading(false);
           flushQueue();
           setGrid({ cols, rows });
+          // The terminal fits itself before the socket is open, so that resize is
+          // dropped. Push it again here or the shell renders for 80x24 in a 48x48
+          // viewport and everything below the status line is wasted space.
+          sendResize(cols, rows);
           inject("window.__sh.focus()");
         },
         onInput: (data) => {
@@ -114,6 +119,17 @@ export function TerminalScreen({
   const handleLayout = useCallback((_event: LayoutChangeEvent) => {
     inject("window.__sh.fit()");
   }, [inject]);
+
+  // Switching sessions must not leave the previous shell's output on screen. The
+  // WebView terminal stays initialised across a switch, so only the drawn screen and
+  // any queued bytes reset -- readyRef deliberately stays true, since onReady fires
+  // once per WebView rather than once per session.
+  useEffect(() => {
+    queuedRef.current = [];
+    inject("window.__sh.clear()");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCtrlArmed(false);
+  }, [inject, sessionId]);
 
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", () => {

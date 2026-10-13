@@ -53,9 +53,20 @@ async function main(): Promise<void> {
 
   await client.createSession(80, 24);
   const firstSession = client.currentSessionId;
+  // The terminal measures itself before the socket exists, so this resize is recorded
+  // while nothing can carry it. The client has to replay it on open, or the shell
+  // renders for the 80x24 default inside whatever viewport the phone actually has.
+  client.sendResize(100, 40);
   client.connect();
 
   check(await waitUntil(() => statuses.includes("open"), 8000), "initial connect reaches open");
+
+  client.sendStdin(b64("stty size\n"));
+  check(
+    await waitUntil(() => output.join("").includes("40 100"), 8000),
+    "the geometry recorded before the socket opened is replayed on open",
+    "expected \"40 100\" from stty size",
+  );
 
   client.sendStdin(b64("echo FIRST-SHELL-OK\n"));
   check(
