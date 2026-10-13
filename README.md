@@ -1,9 +1,30 @@
 # sh-app
 
-Android client for `sh-agent`. Expo + React Native, xterm.js rendered in a WebView.
+Android client for [`sh-agent`](../sh-agent) — a terminal that runs on your machine and is driven
+from your phone over your private network.
 
-Status: **M2 complete** — terminal renders, keystrokes round-trip, ANSI and UTF-8 intact, grid
-resizes. Gestures arrive in M3.
+Expo + React Native, with xterm.js rendered inside a WebView.
+
+## What it does
+
+- **A real terminal** driving a PTY on your machine, so the working directory, environment and
+  background jobs are genuinely yours
+- **Gesture control keys** — two-finger swipe for arrows, `Ctrl-C` and `Ctrl-D`, because a single
+  finger belongs to text selection
+- **Command palette** — swipe a card right to run it *in the live shell*, left to edit it
+- **Survives network drops** — reconnect replays exactly the bytes you missed
+
+See the agent README for the wire protocol and the resume design.
+
+## Setup
+
+```bash
+npm install          # postinstall regenerates the inlined xterm payload
+npx expo start       # scan the QR with Expo Go
+```
+
+Start the agent first (see its README), then in the app set **Host** to the address it printed,
+**Port** `8765`, **Token** to its `SH_TOKEN`.
 
 ## Layout
 
@@ -65,15 +86,11 @@ Two things that will bite you otherwise:
   port and the device vanishes from `adb devices`. Start Metro separately and launch Expo Go by hand
   with `am start -a android.intent.action.VIEW -d 'exp://10.0.2.2:8081'`.
 
-## Running
-
-```bash
-npm install                 # postinstall regenerates the xterm payload
-npx expo start              # then scan the QR with Expo Go
-```
+## Connectivity
 
 Tailscale is not required for local development — a same-Wi-Fi address works if the agent is started
-with `SH_ALLOW_LAN=1`. For a real phone over the tailnet, bind the agent to its Tailscale address.
+with `SH_ALLOW_LAN=1`. For a real phone over the tailnet, bind the agent to its Tailscale address
+and put the `100.x` address in the app.
 
 ## Development
 
