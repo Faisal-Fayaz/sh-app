@@ -7,6 +7,14 @@ import {
   type LiveSession,
   type SessionsResponse,
 } from "../src/agent/sessionModel";
+import {
+  clampFontSize,
+  DEFAULT_FONT_SIZE,
+  fontSizeFromScale,
+  isZoomGesture,
+  MAX_FONT_SIZE,
+  MIN_FONT_SIZE,
+} from "../src/agent/fontSize";
 let passed = 0;
 let failed = 0;
 const failures: string[] = [];
@@ -128,6 +136,27 @@ check(tmuxTarget.mode === "tmux", "the mode travels with the switch");
 
 const namedTarget = targetForLiveSession({ ...session({ mode: "pty", slug: "x" }), id: "i" });
 check(namedTarget.sessionId === "i", "a row with a slug still switches by id");
+
+// Pinch zoom. Both it and the two-finger navigation gesture use two fingers, so the
+// only thing separating them is whether the fingers changed distance.
+check(clampFontSize(5) === MIN_FONT_SIZE, "font size cannot go below the floor");
+check(clampFontSize(99) === MAX_FONT_SIZE, "font size cannot go above the ceiling");
+check(clampFontSize(11.4) === 11, "font size rounds to whole pixels");
+check(clampFontSize(Number.NaN) === DEFAULT_FONT_SIZE, "a nonsense size falls back to the default");
+check(clampFontSize(DEFAULT_FONT_SIZE) === DEFAULT_FONT_SIZE, "the default is in range");
+
+check(isZoomGesture(1) === false, "two fingers held still is not a zoom");
+check(isZoomGesture(1.02) === false, "jitter while starting a drag is not a zoom");
+check(isZoomGesture(1.09) === false, "a small drift is still a drag");
+check(isZoomGesture(1.4) === true, "spreading the fingers is a zoom");
+check(isZoomGesture(0.7) === true, "pinching the fingers together is a zoom");
+check(isZoomGesture(0) === false, "a collapsed gesture is ignored");
+
+check(fontSizeFromScale(13, 2) === MAX_FONT_SIZE, "zooming in stops at the ceiling");
+check(fontSizeFromScale(13, 0.5) === MAX_FONT_SIZE - 1 || fontSizeFromScale(13, 0.5) === 8,
+      "zooming out is clamped too");
+check(fontSizeFromScale(13, 1.2) === 16, "zooming scales the current size");
+check(fontSizeFromScale(13, 1) === 13, "no scale change keeps the size");
 
 console.log(`\n${passed}/${passed + failed} assertions passed`);
 for (const label of failures) console.log(`[FAIL] ${label}`);

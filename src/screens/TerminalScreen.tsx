@@ -19,11 +19,45 @@ import * as Haptics from "expo-haptics";
 import { useAgent } from "@/agent/AgentProvider";
 import type { AgentFrame } from "@/agent/AgentClient";
 import { ControlBar } from "@/components/ControlBar";
+import {
+  clampFontSize,
+  DEFAULT_FONT_SIZE,
+  fontSizeFromScale,
+  isZoomGesture,
+  MAX_FONT_SIZE,
+  MIN_FONT_SIZE,
+} from "@/agent/fontSize";
 import { DEFAULT_GESTURE, mapGesture } from "@/gestures/gestureMap";
 import { keyBytes, sendBytes, sendKey, type NamedKey } from "@/gestures/keys";
 import { routeBridgeMessage } from "@/terminal/bridge";
 import { buildTerminalHtml } from "@/terminal/terminalHtml";
 import type { Settings } from "@/storage/settings";
+import { useSettings } from "@/state/SettingsProvider";
+
+// Ephemeral gesture bookkeeping for the two-finger surface. Deliberately module scope:
+// React's render rules forbid reading a ref from a closure built during render, and this
+// state is meaningless between mounts anyway.
+let zoomLocked = false;
+let pinchStartSize = DEFAULT_FONT_SIZE;
+let applyFontSizeNow: (next: number) => void = () => {};
+
+function beginPinchOnJs(current: number): void {
+  pinchStartSize = current;
+  zoomLocked = false;
+}
+
+function pinchEndOnJs(scale: number): void {
+  if (!isZoomGesture(scale)) return;
+  zoomLocked = true;
+  const next = fontSizeFromScale(pinchStartSize, scale);
+  if (next === pinchStartSize) return;
+  pinchStartSize = next;
+  applyFontSizeNow(next);
+}
+
+function resetZoomOnJs(): void {
+  applyFontSizeNow(DEFAULT_FONT_SIZE);
+}
 
 interface Props {
   settings: Settings;
@@ -58,6 +92,9 @@ export function TerminalScreen({
   } = useAgent();
   const [loading, setLoading] = useState(true);
   const [ctrlArmed, setCtrlArmed] = useState(false);
+  const { save } = useSettings();
+  const [fontSize, setFontSize] = useState(settings.fontSize || DEFAULT_FONT_SIZE);
+  const [zoomHint, setZoomHint] = useState<number | null>(null);
 
   const html = useMemo(() => buildTerminalHtml(), []);
 
@@ -73,6 +110,19 @@ export function TerminalScreen({
       inject(`window.__sh.writeBase64(${JSON.stringify(chunk)})`);
     }
   }, [inject]);
+
+  const applyFontSize = useCallback(
+    (next: number) => {
+      const clamped = clampFontSize(next);
+      setFontSize(clamped);
+      setZoomHint(clamped);
+      // xterm re-fits when the font changes, which fires onResize, and the bridge
+      // handler above pushes the new grid to the agent.
+      inject(`window.__sh.setFontSize(${clamped})`);
+      void save({ ...settings, fontSize: clamped });
+    },
+    [inject, save, settings],
+  );
 
   useEffect(() => {
     const listener = (frame: AgentFrame) => {
@@ -156,6 +206,12 @@ export function TerminalScreen({
     [sendStdin],
   );
 
+  // Published for the module-level gesture helpers, which must not close over inject
+  // (and through it the webview ref) from render scope.
+  useEffect(() => {
+    applyFontSizeNow = applyFontSize;
+  }, [applyFontSize]);
+
   // Every side effect lives here, on the JS thread, and is invoked from the worklet via
   // runOnJS. A worklet copies its entire closure to the UI thread, and host objects like
   // KeyboardImpl and the haptics module cannot be copied — referencing them directly
@@ -178,6 +234,36 @@ export function TerminalScreen({
   );
 
   // The worklet below may only close over functions and plain data.
+  // Two fingers move together to navigate, and apart or together in depth to zoom. The
+  // two overlap completely, so whichever commits first claims the gesture: the pinch
+  // raises a flag and the pan checks it before sending anything. Both hops onto the JS
+  // thread, so they land in the order they were raised.
+  const handlePanEnd = useCallback(
+    (dx: number, dy: number) => {
+      if (zoomLocked) return;
+      const action = mapGesture({ dx, dy, pointers: 2 }, DEFAULT_GESTURE);
+      if (!action) return;
+      if (action.kind === "scroll") {
+        scrollFromGesture(action.lines);
+        return;
+      }
+      sendGestureKey(action.key);
+    },
+    [sendGestureKey, scrollFromGesture],
+  );
+
+  const pinchGesture = useMemo(
+    () =>
+      Gesture.Pinch()
+        .onBegin(() => {
+          runOnJS(beginPinchOnJs)(fontSize);
+        })
+        .onEnd((event) => {
+          runOnJS(pinchEndOnJs)(event.scale);
+        }),
+    [fontSize],
+  );
+
   const twoFingerGesture = useMemo(
     () =>
       Gesture.Pan()
@@ -185,19 +271,33 @@ export function TerminalScreen({
         .maxPointers(2)
         .averageTouches(true)
         .onEnd((event) => {
-          const action = mapGesture(
-            { dx: event.translationX, dy: event.translationY, pointers: 2 },
-            DEFAULT_GESTURE,
-          );
-          if (!action) return;
-          if (action.kind === "scroll") {
-            runOnJS(scrollFromGesture)(action.lines);
-            return;
-          }
-          runOnJS(sendGestureKey)(action.key);
+          runOnJS(handlePanEnd)(event.translationX, event.translationY);
         }),
-    [sendGestureKey, scrollFromGesture],
+    [handlePanEnd],
   );
+
+  // Pinch is invisible until you stumble into it, so a double-tap puts the text back.
+  const resetZoomGesture = useMemo(
+    () =>
+      Gesture.Tap()
+        .numberOfTaps(2)
+        .maxDuration(300)
+        .onEnd((_event, success) => {
+          if (success) runOnJS(resetZoomOnJs)();
+        }),
+    [],
+  );
+
+  const composedGesture = useMemo(
+    () => Gesture.Simultaneous(Gesture.Simultaneous(pinchGesture, twoFingerGesture), resetZoomGesture),
+    [pinchGesture, twoFingerGesture, resetZoomGesture],
+  );
+
+  useEffect(() => {
+    if (zoomHint === null) return;
+    const timer = setTimeout(() => setZoomHint(null), 1200);
+    return () => clearTimeout(timer);
+  }, [zoomHint]);
 
   const bannerText = notice ?? detail;
 
@@ -257,7 +357,7 @@ export function TerminalScreen({
       ) : null}
 
       <KeyboardAvoidingView style={styles.body} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <GestureDetector gesture={twoFingerGesture}>
+        <GestureDetector gesture={composedGesture}>
           <View style={styles.terminal} onLayout={handleLayout} collapsable={false}>
             <WebView
               ref={webviewRef}
@@ -282,11 +382,26 @@ export function TerminalScreen({
           </View>
         </GestureDetector>
 
-        <ControlBar send={sendStdin} ctrlArmed={ctrlArmed} onToggleCtrl={() => setCtrlArmed((p) => !p)} />
+        <ControlBar
+          send={sendStdin}
+          ctrlArmed={ctrlArmed}
+          onToggleCtrl={() => setCtrlArmed((p) => !p)}
+          fontSize={fontSize}
+          fontMin={MIN_FONT_SIZE}
+          fontMax={MAX_FONT_SIZE}
+          onFontSize={applyFontSize}
+        />
 
         <Text style={styles.footnote}>
-          {ctrlArmed ? "ctrl armed — next key is modified" : "two-finger swipe: ← → ^C ^D"}
+          {ctrlArmed
+            ? "ctrl armed — next key is modified"
+            : "pinch or A-/A+ resizes · two-finger swipe: ← → ^C ^D"}
         </Text>
+        {zoomHint !== null && (
+          <View style={styles.zoomHud} pointerEvents="none">
+            <Text style={styles.zoomText}>{zoomHint}px</Text>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -334,4 +449,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   footnote: { color: "#3a4256", fontSize: 11, paddingBottom: 6, textAlign: "center" },
+  zoomHud: {
+    position: "absolute",
+    alignSelf: "center",
+    bottom: 96,
+    backgroundColor: "#141a24",
+    borderColor: "#2b3a4d",
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  zoomText: { color: "#7fd1b9", fontSize: 13, fontFamily: "monospace" },
 });

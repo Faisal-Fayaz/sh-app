@@ -36,6 +36,7 @@ export function ConnectScreen({ initial, onSave, onCancel, externalError }: Prop
     setError(null);
     try {
       await onSave({
+        ...initial,
         host: host.trim(),
         port: port.trim() || "8765",
         token: token.trim(),
@@ -46,7 +47,7 @@ export function ConnectScreen({ initial, onSave, onCancel, externalError }: Prop
     } finally {
       setBusy(false);
     }
-  }, [host, port, token, writeToken, onSave]);
+  }, [host, port, token, writeToken, onSave, initial]);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>

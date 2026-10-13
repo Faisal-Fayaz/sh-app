@@ -26,9 +26,29 @@ interface Props {
   send: (base64: string) => void;
   ctrlArmed: boolean;
   onToggleCtrl: () => void;
+  /** Pinch changes the text size, but that is undiscoverable on its own. */
+  fontSize: number;
+  fontMin: number;
+  fontMax: number;
+  onFontSize: (next: number) => void;
 }
 
-export function ControlBar({ send, ctrlArmed, onToggleCtrl }: Props) {
+export function ControlBar({
+  send,
+  ctrlArmed,
+  onToggleCtrl,
+  fontSize,
+  fontMin,
+  fontMax,
+  onFontSize,
+}: Props) {
+  const resizeFont = (delta: number) => {
+    const next = fontSize + delta;
+    if (next < fontMin || next > fontMax) return;
+    void Haptics.selectionAsync();
+    onFontSize(next);
+  };
+
   const press = (key: NamedKey) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sendKey(key, send, ctrlArmed);
@@ -51,6 +71,26 @@ export function ControlBar({ send, ctrlArmed, onToggleCtrl }: Props) {
           <Text style={[styles.keyLabel, spec.tint ? { color: spec.tint } : null]}>{spec.label}</Text>
         </TouchableOpacity>
       ))}
+      <TouchableOpacity
+        style={styles.key}
+        onPress={() => resizeFont(-1)}
+        disabled={fontSize <= fontMin}
+        activeOpacity={0.6}
+        accessibilityRole="button"
+        accessibilityLabel="Smaller text"
+      >
+        <Text style={styles.fontLabel}>A-</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.key}
+        onPress={() => resizeFont(1)}
+        disabled={fontSize >= fontMax}
+        activeOpacity={0.6}
+        accessibilityRole="button"
+        accessibilityLabel="Larger text"
+      >
+        <Text style={styles.fontLabel}>A+</Text>
+      </TouchableOpacity>
       <TouchableOpacity
         style={[styles.key, styles.ctrl, ctrlArmed && styles.ctrlActive]}
         onPress={() => {
@@ -86,6 +126,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#141926",
   },
   keyLabel: { color: "#c8d3e0", fontSize: 13, fontFamily: "monospace" },
+  fontLabel: { color: "#8aa4c8", fontSize: 12, fontFamily: "monospace" },
   ctrl: { backgroundColor: "#141926", borderWidth: 1, borderColor: "#232b3b" },
   ctrlActive: { backgroundColor: "#7fd1b9", borderColor: "#7fd1b9" },
   ctrlLabelActive: { color: "#0b0e14", fontWeight: "700" },

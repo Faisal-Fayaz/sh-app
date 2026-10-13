@@ -273,6 +273,25 @@ alive for `SH_DETACH_GRACE`, so coming back within a couple of minutes replays w
 while you were away. The row you are already on is marked **(here)** and is not tappable, since
 switching to it would be a no-op.
 
+## Zooming the text
+
+A phone gives you very few columns, and a TUI like opencode does not degrade gracefully
+below its comfortable width. **Pinch** to change the text size, or use the **A- / A+** keys
+in the control bar — pinch on its own is easy never to discover, so the buttons are there
+too. **Double-tap** the terminal to go back to the default.
+
+This changes the font size rather than zooming the page on purpose. Scaling the WebView
+would blur the glyphs and would not change the remote grid at all, so the program would
+still be laying itself out for the old width and would clip just the same. Resizing the
+font makes xterm re-fit, which produces a new column count, which is sent to the agent,
+which resizes the shell, which makes the program lay out again for the width it really
+has. The size is remembered per device, and clamped to 8-20px.
+
+Pinch and the two-finger navigation gesture use the same two fingers. They are told apart
+by what the fingers do — spreading or closing them changes the distance, sliding them
+across the screen does not — and only past a threshold, so starting a scroll-back drag
+never changes the text size by accident.
+
 ## Terminal size
 
 The terminal measures itself and reports the grid to the agent, which resizes the remote shell to
