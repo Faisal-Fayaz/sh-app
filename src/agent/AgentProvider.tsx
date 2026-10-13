@@ -84,7 +84,16 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   // instead of dropping whatever the shell printed while we were on another session.
   const resumeOffsets = useRef(new Map<string, number>());
   const activeId = useRef<string | null>(null);
-  const [grid, setGrid] = useState({ cols: DEFAULT_COLS, rows: DEFAULT_ROWS });
+  // Read inside the connect effect, which must not re-run just because the grid moved.
+  const gridRef = useRef({ cols: DEFAULT_COLS, rows: DEFAULT_ROWS });
+  const [grid, setGridState] = useState({ cols: DEFAULT_COLS, rows: DEFAULT_ROWS });
+
+  // setGrid is called on its own in a few places, so keep the ref in step with the
+  // state rather than only tracking it in sendResize.
+  const setGrid = useCallback((next: { cols: number; rows: number }) => {
+    gridRef.current = next;
+    setGridState(next);
+  }, []);
 
   const dismissNotice = useCallback(() => setNotice(null), []);
 
@@ -108,6 +117,11 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       host: normalizeHost(settings.host),
       port: Number(settings.port) || 8765,
       token: settings.token,
+      // The terminal reports its size once, at startup. A client created later -- on a
+      // session switch, say -- would otherwise replay the 80x24 default and shrink the
+      // shell back to a size nothing asked for.
+      cols: gridRef.current.cols,
+      rows: gridRef.current.rows,
       onFrame: (frame) => {
         if (frame.type === "stdout" && typeof frame.seq === "number" && activeId.current) {
           resumeOffsets.current.set(activeId.current, frame.seq);
@@ -173,6 +187,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   );
 
   const sendResize = useCallback((cols: number, rows: number) => {
+    gridRef.current = { cols, rows };
     clientRef.current?.sendResize(cols, rows);
   }, []);
 
@@ -186,9 +201,9 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       sessionSlug,
       attachTo,
       grid,
+      setGrid,
       notice,
       dismissNotice,
-      setGrid,
       sendStdin,
       sendText,
       sendResize,
@@ -203,6 +218,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       sessionSlug,
       attachTo,
       grid,
+      setGrid,
       notice,
       dismissNotice,
       sendStdin,

@@ -53,9 +53,8 @@ async function main(): Promise<void> {
 
   await client.createSession(80, 24);
   const firstSession = client.currentSessionId;
-  // The terminal measures itself before the socket exists, so this resize is recorded
-  // while nothing can carry it. The client has to replay it on open, or the shell
-  // renders for the 80x24 default inside whatever viewport the phone actually has.
+  // The terminal measures itself before the socket exists, so this lands while nothing
+  // can carry it and has to be replayed on open.
   client.sendResize(100, 40);
   client.connect();
 
@@ -64,7 +63,7 @@ async function main(): Promise<void> {
   client.sendStdin(b64("stty size\n"));
   check(
     await waitUntil(() => output.join("").includes("40 100"), 8000),
-    "the geometry recorded before the socket opened is replayed on open",
+    "geometry measured before the socket opened is replayed on open",
     "expected \"40 100\" from stty size",
   );
 
@@ -75,6 +74,37 @@ async function main(): Promise<void> {
   );
 
   check(firstSession !== null, "client knows its session id", String(firstSession));
+
+  // A client built later -- on a session switch -- knows only the geometry it was
+  // seeded with. Defaulting that to 80x24 shrinks the shell to a size nobody asked
+  // for, and the terminal never re-reports its size because it did not change.
+  const switched = new AgentClient({
+    host: HOST,
+    port: PORT,
+    token: TOKEN,
+    cols: 100,
+    rows: 40,
+    reconnectDelayMs: 200,
+    onFrame: (frame: AgentFrame) => {
+      if (frame.type === "stdout" && frame.data) {
+        output.push(Buffer.from(frame.data, "base64").toString("utf8"));
+      }
+    },
+    onStatus: (status) => statuses.push(status),
+  });
+  if (firstSession === null) throw new Error("expected a session id");
+  switched.attachExisting(firstSession);
+  switched.connect();
+  check(
+    await waitUntil(() => statuses.filter((s) => s === "open").length >= 2, 8000),
+    "a client seeded with the real grid reconnects",
+  );
+  switched.sendStdin(b64("stty size\n"));
+  check(
+    await waitUntil(() => output.join("").includes("40 100"), 8000),
+    "switching sessions replays the seeded size, not the 80x24 default",
+  );
+  switched.disconnect();
 
   // Simulate the agent reclaiming the session (detach grace expiring, or an explicit kill).
   const kill = await fetch(`http://${HOST}:${PORT}/api/session/${firstSession}/kill`, {

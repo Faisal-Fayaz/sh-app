@@ -14,6 +14,12 @@ export interface AgentFrame {
 
 export interface AgentClientOptions {
   host: string;
+  /**
+   * Geometry to replay when the socket opens. A fresh client would otherwise assume
+   * 80x24, which is what the terminal used to fall back to.
+   */
+  cols?: number;
+  rows?: number;
   port: number;
   token: string;
   onFrame: (frame: AgentFrame) => void;
@@ -43,13 +49,15 @@ export class AgentClient {
   private readonly reconnectDelayMs: number;
   private readonly maxReconnectDelayMs: number;
   private readonly maxAttempts: number;
-  private lastCols = 80;
-  private lastRows = 24;
+  private lastCols: number;
+  private lastRows: number;
 
   constructor(private readonly options: AgentClientOptions) {
     this.reconnectDelayMs = options.reconnectDelayMs ?? 700;
     this.maxReconnectDelayMs = options.maxReconnectDelayMs ?? 8000;
     this.maxAttempts = options.maxAttempts ?? 8;
+    this.lastCols = options.cols ?? 80;
+    this.lastRows = options.rows ?? 24;
   }
 
   get currentSessionId(): string | null {
