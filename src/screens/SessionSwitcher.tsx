@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   describeSession,
   isTmuxUsable,
+  mergeSessions,
   nextSessionAction,
   SessionsApi,
   type LiveSession,
@@ -58,9 +59,10 @@ export function SessionSwitcher({ currentSessionId, onAttach, onClose }: Props) 
   }, [refresh]);
 
   const act = useCallback(
-    async (sessionId: string, action: "detach" | "kill") => {
+    async (sessionId: string, action: "detach" | "kill", slug?: string) => {
       try {
         if (action === "detach") await api.detach(sessionId);
+        else if (slug) await api.killPersisted(slug);
         else await api.kill(sessionId);
         await refresh();
       } catch (err) {
@@ -72,6 +74,10 @@ export function SessionSwitcher({ currentSessionId, onAttach, onClose }: Props) 
 
   const tmuxReady = data ? isTmuxUsable(data) : false;
   const activeSlug = slug.trim();
+
+  // Belt and braces: the agent already hides live slugs from `persisted`, and the
+  // merge helper keeps older agents from showing one session twice.
+  const rows = data ? mergeSessions(data) : null;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -137,7 +143,7 @@ export function SessionSwitcher({ currentSessionId, onAttach, onClose }: Props) 
           {data?.live.length === 0 ? (
             <Text style={styles.empty}>No live sessions.</Text>
           ) : (
-            data?.live.map((session) => (
+            rows?.live.map((session) => (
               <LiveRow
                 key={session.id}
                 session={session}
@@ -149,14 +155,15 @@ export function SessionSwitcher({ currentSessionId, onAttach, onClose }: Props) 
           )}
 
           <Text style={styles.section}>Persisted (tmux)</Text>
-          {data?.persisted.length === 0 ? (
-            <Text style={styles.empty}>No persisted sessions.</Text>
+          {rows?.persisted.length === 0 ? (
+            <Text style={styles.empty}>No detached sessions.</Text>
           ) : (
-            data?.persisted.map((session) => (
+            rows?.persisted.map((session) => (
               <PersistedRow
                 key={session.name}
                 session={session}
                 onAttach={() => onAttach({ mode: "tmux", slug: session.slug })}
+                onKill={() => void act("", "kill", session.slug)}
               />
             ))
           )}
@@ -200,17 +207,33 @@ function LiveRow({
 function PersistedRow({
   session,
   onAttach,
+  onKill,
 }: {
   session: PersistedSession;
   onAttach: () => void;
+  onKill: () => void;
 }) {
+  // A detached session has no session id any more, so it can only be removed by slug.
   return (
-    <TouchableOpacity style={styles.row} onPress={onAttach} accessibilityRole="button">
-      <Text style={styles.rowName}>{session.slug}</Text>
-      <Text style={styles.rowHint}>
-        {session.attached > 0 ? "attached elsewhere" : "detached · survives reconnects"}
-      </Text>
-    </TouchableOpacity>
+    <View style={styles.row}>
+      <TouchableOpacity style={styles.rowMain} onPress={onAttach} accessibilityRole="button">
+        <Text style={styles.rowName}>{session.slug}</Text>
+        <Text style={styles.rowHint}>
+          {session.attached > 0
+            ? "attached elsewhere · opening it here takes over"
+            : "detached · survives reconnects"}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.action}
+        onPress={onKill}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${session.slug}`}
+      >
+        <Text style={styles.actionLabel}>Remove</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 

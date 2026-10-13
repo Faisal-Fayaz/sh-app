@@ -256,6 +256,17 @@ Tap **Sessions** in the header to switch. Named sessions are worth it for long-r
 
 Everything sharing a token shares the tmux namespace, so treat slugs as a shared space.
 
+**Opening a session switches to it.** tmux will happily attach several clients to one session, so
+tapping a row repeatedly used to stack up duplicate entries. The agent now treats a second attach to
+a name it is already serving as a switch: the previous socket is closed, the older tmux client is
+detached, and you land in the same session with its scrollback intact. Because the slug namespace is
+shared, this also means the phone takes over from the laptop rather than mirroring it — handy for
+walking over to pick work up, and worth knowing if you have both open at once.
+
+Live rows show **Detach** (keep the session) or **Kill** (delete it). Detached sessions move to the
+persisted list, where **Remove** deletes them, since a detached session no longer has a session id
+to kill by.
+
 ## Reconnecting
 
 The agent holds each session for `SH_DETACH_GRACE` (2 min) after a disconnect, so `?resume=<seq>`

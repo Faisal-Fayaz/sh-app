@@ -44,3 +44,18 @@ export function nextSessionAction(session: LiveSession): "detach" | "kill" {
 export function isTmuxUsable(health: Pick<SessionsResponse, "tmux_available" | "tmux_enabled">): boolean {
   return Boolean(health.tmux_available && health.tmux_enabled);
 }
+
+/**
+ * The agent lists a slug once as live and again as persisted while it is attached.
+ * Showing both makes a single session read as a duplicate, so drop the persisted
+ * copy whenever a live row already owns the slug.
+ */
+export function mergeSessions(health: SessionsResponse): SessionsResponse {
+  const liveSlugs = new Set(
+    health.live.map((session) => session.slug).filter((slug): slug is string => Boolean(slug)),
+  );
+  return {
+    ...health,
+    persisted: health.persisted.filter((session) => !liveSlugs.has(session.slug)),
+  };
+}

@@ -7,7 +7,7 @@ export type {
   SessionRequest,
   SessionsResponse,
 } from "./sessionModel";
-export { describeSession, isTmuxUsable, nextSessionAction } from "./sessionModel";
+export { describeSession, isTmuxUsable, mergeSessions, nextSessionAction } from "./sessionModel";
 
 export class SessionsApi {
   constructor(private readonly base: CommandsApi) {}
@@ -30,6 +30,12 @@ export class SessionsApi {
   kill(sessionId: string): Promise<{ status: string }> {
     return this.base.request<{ status: string }>(`/api/session/${encodeURIComponent(sessionId)}/kill`, {
       method: "POST",
+    });
+  }
+
+  killPersisted(slug: string): Promise<{ status: string }> {
+    return this.base.request<{ status: string }>(`/api/persisted/${encodeURIComponent(slug)}`, {
+      method: "DELETE",
     });
   }
 
