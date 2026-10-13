@@ -315,12 +315,17 @@ pretending it has a contiguous history.
 ## Roadmap
 
 - Signing and distribution (needs an Expo account for EAS, or a local Gradle keystore)
+- Verification of the gestures on hardware, which is the gate on the above
 
 ### Not yet verified
 
-- The two-finger swipes are unit-tested but **not exercised on a device**: `adb input` cannot
-  synthesise multi-touch. Whether a two-finger pan is correctly captured over the WebView (rather
-  than being consumed by it) needs a physical device.
+- The two-finger swipes and pinch-to-zoom are unit-tested but **not exercised on a device**:
+  `adb input` cannot synthesise multi-touch. Three things need a real phone:
+  whether a two-finger pan is captured over the WebView rather than consumed by it, whether
+  the WebView hands a pinch to the gesture handler at all, and whether a pinch and a
+  two-finger drag are reliably told apart. That last one currently rests on both sides
+  raising their work through `runOnJS` in order, which is reasoned rather than tested.
+  The `A-`/`A+` keys are the fallback and bypass the gesture layer entirely.
 - No signed APK has been produced. `expo export --platform android` passes and `expo-doctor` is
   clean (21/21), so the release JS bundle is valid, but installing it on hardware needs either an
   Expo account for `eas build` or a local keystore.
