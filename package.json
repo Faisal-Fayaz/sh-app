@@ -1,22 +1,50 @@
 {
   "name": "sh-app",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "dependencies": {
-    "expo": "~57.0.27",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "expo": "~57.0.28",
+    "expo-constants": "~57.0.21",
+    "expo-haptics": "~57.0.3",
+    "expo-linking": "~57.0.12",
+    "expo-router": "~57.0.26",
+    "expo-secure-store": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
-    "react-native": "0.86.3"
+    "react-native": "0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-webview": "13.16.1",
+    "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "^57.0.2",
+    "puppeteer": "^25.13.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:terminal": "node scripts/build-terminal-bundle.mjs",
+    "postinstall": "node scripts/build-terminal-bundle.mjs",
+    "verify:m2": "tsc -p tsconfig.verify.json && node .verify-build/scripts/verify-m2.js",
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "tsc -p tsconfig.verify.json && node .verify-build/scripts/test-gestures.js && node .verify-build/scripts/test-palette.js",
+    "verify:m4": "tsc -p tsconfig.verify.json && node .verify-build/scripts/verify-m4.js",
+    "verify:all": "npm run test:unit && npm run verify:m2 && npm run verify:m4 && npm run verify:m5",
+    "verify:m5": "tsc -p tsconfig.verify.json && node .verify-build/scripts/verify-m5.js"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "react-dom": "19.2.3"
+  }
 }
