@@ -28,10 +28,16 @@ interface AgentContextValue {
   sendStdin: (base64: string) => void;
   sendText: (text: string) => void;
   sendResize: (cols: number, rows: number) => void;
+  retryNow: () => void;
   subscribe: (listener: FrameListener) => () => void;
 }
 
 const AgentContext = createContext<AgentContextValue | null>(null);
+
+/** Statuses the agent returns when it understood us and said no. */
+function isAuthFailure(message: string): boolean {
+  return /\b(401|403)\b/.test(message) || /invalid token|token required|write access disabled/i.test(message);
+}
 
 function encodeUtf8Base64(text: string): string {
   const bytes: number[] = [];
@@ -84,6 +90,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   // instead of dropping whatever the shell printed while we were on another session.
   const resumeOffsets = useRef(new Map<string, number>());
   const activeId = useRef<string | null>(null);
+  const connectAttempt = useRef(0);
   // Read inside the connect effect, which must not re-run just because the grid moved.
   const gridRef = useRef({ cols: DEFAULT_COLS, rows: DEFAULT_ROWS });
   const [grid, setGridState] = useState({ cols: DEFAULT_COLS, rows: DEFAULT_ROWS });
@@ -137,31 +144,50 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     clientRef.current = client;
 
     (async () => {
-      try {
-        if (target.sessionId) {
-          // Switching to a session that is already open. Reconnect to its id so the
-          // agent keeps one session per shell instead of growing a new one per tap.
-          client.attachExisting(target.sessionId, resumeOffsets.current.get(target.sessionId) ?? null);
-          activeId.current = target.sessionId;
+      // Opening the app while the host is asleep is the common case, not the edge
+      // case, so keep trying instead of failing on the first attempt. A rejected
+      // token stops immediately, because retrying that only wastes the user's battery.
+      for (;;) {
+        if (cancelled) return;
+        try {
+          if (target.sessionId) {
+            // Switching to a session that is already open. Reconnect to its id so the
+            // agent keeps one session per shell instead of growing a new one per tap.
+            client.attachExisting(target.sessionId, resumeOffsets.current.get(target.sessionId) ?? null);
+            activeId.current = target.sessionId;
+            if (cancelled) return;
+            setSessionId(target.sessionId);
+            setSessionMode(target.mode);
+            setSessionSlug(target.slug ?? null);
+            client.connect();
+            return;
+          }
+          const session = await client.createSession(DEFAULT_COLS, DEFAULT_ROWS, target);
+          activeId.current = session.id;
           if (cancelled) return;
-          setSessionId(target.sessionId);
-          setSessionMode(target.mode);
-          setSessionSlug(target.slug ?? null);
+          setSessionId(session.id);
+          setSessionMode(session.mode === "tmux" ? "tmux" : "pty");
+          setSessionSlug(session.slug ?? null);
+          setShell(session.shell);
           client.connect();
           return;
-        }
-        const session = await client.createSession(DEFAULT_COLS, DEFAULT_ROWS, target);
-        activeId.current = session.id;
-        if (cancelled) return;
-        setSessionId(session.id);
-        setSessionMode(session.mode === "tmux" ? "tmux" : "pty");
-        setSessionSlug(session.slug ?? null);
-        setShell(session.shell);
-        client.connect();
-      } catch (err) {
-        if (!cancelled) {
-          setStatus("error");
-          setDetail(err instanceof Error ? err.message : String(err));
+        } catch (err) {
+          if (cancelled) return;
+          const message = err instanceof Error ? err.message : String(err);
+          if (isAuthFailure(message)) {
+            setStatus("error");
+            setDetail(message);
+            return;
+          }
+          const tries = connectAttempt.current + 1;
+          connectAttempt.current = tries;
+          setStatus("reconnecting");
+          setDetail(
+            tries >= 2
+              ? `Cannot reach ${settings.host}:${settings.port}. It may be asleep or out of range.`
+              : `Connecting to ${settings.host}:${settings.port}…`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, Math.min(8000, 700 * 2 ** Math.min(tries - 1, 10))));
         }
       }
     })();
@@ -186,6 +212,10 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     [sendStdin],
   );
 
+  const retryNow = useCallback(() => {
+    clientRef.current?.retryNow();
+  }, []);
+
   const sendResize = useCallback((cols: number, rows: number) => {
     gridRef.current = { cols, rows };
     clientRef.current?.sendResize(cols, rows);
@@ -207,6 +237,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       sendStdin,
       sendText,
       sendResize,
+      retryNow,
       subscribe,
     }),
     [
@@ -224,6 +255,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       sendStdin,
       sendText,
       sendResize,
+      retryNow,
       subscribe,
     ],
   );

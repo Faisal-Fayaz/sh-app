@@ -64,6 +64,7 @@ interface Props {
   onOpenSettings: () => void;
   onOpenPalette: () => void;
   onOpenSessions: () => void;
+  retryNow?: () => void;
 }
 
 export function TerminalScreen({
@@ -71,6 +72,7 @@ export function TerminalScreen({
   onOpenSettings,
   onOpenPalette,
   onOpenSessions,
+  retryNow,
 }: Props) {
   const webviewRef = useRef<WebView>(null);
   const readyRef = useRef(false);
@@ -353,6 +355,22 @@ export function TerminalScreen({
           <Text style={styles.bannerText} numberOfLines={2}>
             {bannerText}
           </Text>
+          <TouchableOpacity
+            style={styles.bannerAction}
+            onPress={onOpenSettings}
+            accessibilityRole="button"
+          >
+            <Text style={styles.bannerActionLabel}>Settings</Text>
+          </TouchableOpacity>
+          {retryNow ? (
+            <TouchableOpacity
+              style={styles.bannerAction}
+              onPress={retryNow}
+              accessibilityRole="button"
+            >
+              <Text style={styles.bannerActionLabel}>Retry now</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       ) : null}
 
@@ -436,7 +454,9 @@ const styles = StyleSheet.create({
   },
   noticeText: { color: "#f2c14e", fontSize: 12 },
   noticeDismiss: { color: "#5a6478", fontSize: 10, marginTop: 2 },
-  bannerText: { color: "#ff8787", fontSize: 12 },
+  bannerText: { color: "#ff8787", fontSize: 12, flexShrink: 1 },
+  bannerAction: { paddingHorizontal: 10, paddingVertical: 4 },
+  bannerActionLabel: { color: "#6ba8f5", fontSize: 12, fontWeight: "600" },
   terminal: { flex: 1 },
   webview: { flex: 1, backgroundColor: "#0b0e14" },
   overlay: {

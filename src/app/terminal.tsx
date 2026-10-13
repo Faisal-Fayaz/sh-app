@@ -4,9 +4,11 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { TerminalScreen } from "@/screens/TerminalScreen";
 import { useSettings } from "@/state/SettingsProvider";
+import { useAgent } from "@/agent/AgentProvider";
 
 export default function TerminalRoute() {
   const { settings, configured } = useSettings();
+  const { retryNow } = useAgent();
 
   if (!configured) {
     return (
@@ -22,6 +24,7 @@ export default function TerminalRoute() {
   return (
     <TerminalScreen
       settings={settings}
+      retryNow={retryNow}
       onOpenSettings={() => router.push("/connect")}
       onOpenPalette={() => router.push("/palette")}
       onOpenSessions={() => router.push("/sessions")}

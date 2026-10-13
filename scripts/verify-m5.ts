@@ -128,6 +128,42 @@ async function main(): Promise<void> {
     statuses.join(" -> "),
   );
 
+  // A host that is merely asleep has to be waited out, not written off. Pointed at a
+  // port nothing is listening on, the client should keep reconnecting indefinitely
+  // instead of reporting a failure the way the old 8-attempt budget did.
+  const deadPort = PORT + 991;
+  const deadStatuses: string[] = [];
+  const deadDetails: string[] = [];
+  const dead = new AgentClient({
+    host: HOST,
+    port: deadPort,
+    token: TOKEN,
+    reconnectDelayMs: 40,
+    maxReconnectDelayMs: 120,
+    onFrame: () => {},
+    onStatus: (status, detail) => {
+      deadStatuses.push(status);
+      if (detail) deadDetails.push(detail);
+    },
+  });
+  dead.attachExisting("deadhost-probe");
+  dead.connect();
+  await waitUntil(() => deadStatuses.filter((s) => s === "reconnecting").length >= 12, 15000);
+  dead.disconnect();
+
+  const retries = deadStatuses.filter((s) => s === "reconnecting").length;
+  check(retries >= 12, "an unreachable host keeps being retried", `${retries} reconnects`);
+  check(
+    !deadStatuses.includes("error"),
+    "an unreachable host is not reported as a failure",
+    deadStatuses.join(" -> "),
+  );
+  check(
+    deadDetails.some((d) => /asleep|out of range/i.test(d)),
+    "the message says the host may simply be unreachable",
+    deadDetails[deadDetails.length - 1] ?? "-",
+  );
+
   check(notices.length > 0, "client told the user the shell was replaced", notices[0] ?? "(none)");
   check(
     notices[0]?.toLowerCase().includes("shell") ?? false,

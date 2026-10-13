@@ -26,7 +26,6 @@ export interface AgentClientOptions {
   onStatus: (status: AgentStatus, detail?: string) => void;
   reconnectDelayMs?: number;
   maxReconnectDelayMs?: number;
-  maxAttempts?: number;
   onNotice?: (message: string) => void;
 }
 
@@ -48,14 +47,12 @@ export class AgentClient {
   private stopped = true;
   private readonly reconnectDelayMs: number;
   private readonly maxReconnectDelayMs: number;
-  private readonly maxAttempts: number;
   private lastCols: number;
   private lastRows: number;
 
   constructor(private readonly options: AgentClientOptions) {
     this.reconnectDelayMs = options.reconnectDelayMs ?? 700;
     this.maxReconnectDelayMs = options.maxReconnectDelayMs ?? 8000;
-    this.maxAttempts = options.maxAttempts ?? 8;
     this.lastCols = options.cols ?? 80;
     this.lastRows = options.rows ?? 24;
   }
@@ -188,9 +185,10 @@ export class AgentClient {
       this.options.onFrame(frame);
     };
 
-    socket.onerror = () => {
-      this.options.onStatus("error", "socket error");
-    };
+    // A WebSocket always fires error then close when a connection fails, so the close
+    // handler is where the outcome is decided. Reporting an error here as well would
+    // flash a failure banner on every retry of a merely unreachable host.
+    socket.onerror = () => {};
 
     socket.onclose = (event) => {
       this.socket = null;
@@ -207,16 +205,26 @@ export class AgentClient {
         return;
       }
 
-      if (this.attempt >= this.maxAttempts) {
+      // The agent refused our credentials. Retrying cannot fix that, and hammering a
+      // host that will keep saying no is pointless -- tell the user what to change.
+      if (event.code === 4401 || event.code === 4403) {
         this.options.onStatus(
           "error",
-          `Lost connection after ${this.attempt} attempts. Open settings to reconnect.`,
+          "The agent rejected this token. Check the token and port in Settings.",
         );
         return;
       }
 
       this.scheduleReconnect();
     };
+  }
+
+  /** Abandon the backoff and try immediately, for a user-initiated Retry. */
+  retryNow(): void {
+    if (this.stopped || !this.sessionId) return;
+    this.clearTimer();
+    this.attempt = 0;
+    this.openSocket();
   }
 
   private async respawn(notice: string): Promise<void> {
@@ -237,9 +245,21 @@ export class AgentClient {
 
   private scheduleReconnect(): void {
     this.attempt += 1;
-    const delay = Math.min(this.maxReconnectDelayMs, this.reconnectDelayMs * 2 ** (this.attempt - 1));
-    this.options.onStatus("reconnecting", `retrying in ${Math.round(delay / 100) / 10}s`);
+    const delay = Math.min(this.maxReconnectDelayMs, this.reconnectDelayMs * 2 ** Math.min(this.attempt - 1, 10));
     this.clearTimer();
+
+    // A host that is merely asleep or out of range comes back on its own, so this
+    // never gives up. Only a rejected token does, and that is handled above. Over
+    // cellular a single tower handoff is enough to blow through a short budget, which
+    // used to leave the app dead until the user reconnected by hand.
+    const endpoint = `${this.options.host}:${this.options.port}`;
+    this.options.onStatus(
+      "reconnecting",
+      this.attempt >= 3
+        ? `Still trying to reach ${endpoint} (${this.attempt} tries). It may be asleep or out of range.`
+        : `retrying in ${Math.round(delay / 100) / 10}s`,
+    );
+
     this.timer = setTimeout(() => this.openSocket(), delay);
   }
 
