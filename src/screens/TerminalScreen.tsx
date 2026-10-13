@@ -29,15 +29,32 @@ interface Props {
   settings: Settings;
   onOpenSettings: () => void;
   onOpenPalette: () => void;
+  onOpenSessions: () => void;
 }
 
-export function TerminalScreen({ settings, onOpenSettings, onOpenPalette }: Props) {
+export function TerminalScreen({
+  settings,
+  onOpenSettings,
+  onOpenPalette,
+  onOpenSessions,
+}: Props) {
   const webviewRef = useRef<WebView>(null);
   const readyRef = useRef(false);
   const queuedRef = useRef<string[]>([]);
 
-  const { status, detail, notice, dismissNotice, grid, setGrid, sendStdin, sendResize, subscribe } =
-    useAgent();
+  const {
+    status,
+    detail,
+    notice,
+    dismissNotice,
+    sessionSlug,
+    sessionMode,
+    grid,
+    setGrid,
+    sendStdin,
+    sendResize,
+    subscribe,
+  } = useAgent();
   const [loading, setLoading] = useState(true);
   const [ctrlArmed, setCtrlArmed] = useState(false);
 
@@ -192,9 +209,13 @@ export function TerminalScreen({ settings, onOpenSettings, onOpenPalette }: Prop
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <Text style={styles.grid}>
+          <Text style={styles.grid} numberOfLines={1}>
+            {sessionMode === "tmux" ? `${sessionSlug ?? "tmux"} · ` : ""}
             {grid.cols}x{grid.rows}
           </Text>
+          <TouchableOpacity onPress={onOpenSessions} hitSlop={10} style={styles.headerButton}>
+            <Text style={styles.headerLabel}>Sessions</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={onOpenPalette} hitSlop={10} style={styles.headerButton}>
             <Text style={styles.headerLabel}>Commands</Text>
           </TouchableOpacity>

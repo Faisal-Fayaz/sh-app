@@ -19,10 +19,14 @@
   },
   "include": [
     "scripts/verify-m2.ts",
-    "scripts/test-gestures.ts", "scripts/test-palette.ts", "scripts/verify-m4.ts", "scripts/verify-m5.ts",
+    "scripts/test-gestures.ts",
+    "scripts/test-palette.ts",
+    "scripts/verify-m4.ts",
+    "scripts/verify-m5.ts",
     "src/agent/**/*.ts",
     "src/terminal/**/*.ts",
-    "src/gestures/**/*.ts"
+    "src/gestures/**/*.ts",
+    "scripts/test-sessions.ts"
   ],
   "exclude": [
     "node_modules",

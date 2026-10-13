@@ -60,21 +60,30 @@ export class AgentClient {
     return this.resumeOffset;
   }
 
-  async createSession(cols: number, rows: number): Promise<{ id: string; shell: string }> {
+  async createSession(
+    cols: number,
+    rows: number,
+    target?: { mode?: "pty" | "tmux"; slug?: string },
+  ): Promise<{ id: string; shell: string; mode: string; slug: string | null }> {
     const response = await fetch(`http://${this.options.host}:${this.options.port}/api/session`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.options.token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ cols, rows }),
+      body: JSON.stringify({
+        cols,
+        rows,
+        mode: target?.mode ?? "pty",
+        ...(target?.slug ? { slug: target.slug } : {}),
+      }),
     });
     if (!response.ok) {
       throw new Error(`create session failed: ${response.status} ${await safeText(response)}`);
     }
     this.lastCols = cols;
     this.lastRows = rows;
-    const body = (await response.json()) as { id: string; shell: string };
+    const body = (await response.json()) as { id: string; shell: string; mode: string; slug: string | null };
     this.sessionId = body.id;
     this.resumeOffset = null;
     return body;

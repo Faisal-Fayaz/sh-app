@@ -38,7 +38,7 @@
     "verify:m2": "tsc -p tsconfig.verify.json && node .verify-build/scripts/verify-m2.js",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test:unit": "tsc -p tsconfig.verify.json && node .verify-build/scripts/test-gestures.js && node .verify-build/scripts/test-palette.js",
+    "test:unit": "tsc -p tsconfig.verify.json && node .verify-build/scripts/test-gestures.js && node .verify-build/scripts/test-palette.js && node .verify-build/scripts/test-sessions.js",
     "verify:m4": "tsc -p tsconfig.verify.json && node .verify-build/scripts/verify-m4.js",
     "verify:all": "npm run test:unit && npm run verify:m2 && npm run verify:m4 && npm run verify:m5",
     "verify:m5": "tsc -p tsconfig.verify.json && node .verify-build/scripts/verify-m5.js"

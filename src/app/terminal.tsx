@@ -24,6 +24,7 @@ export default function TerminalRoute() {
       settings={settings}
       onOpenSettings={() => router.push("/connect")}
       onOpenPalette={() => router.push("/palette")}
+      onOpenSessions={() => router.push("/sessions")}
     />
   );
 }

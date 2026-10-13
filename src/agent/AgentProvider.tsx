@@ -8,11 +8,19 @@ const DEFAULT_ROWS = 24;
 
 type FrameListener = (frame: AgentFrame) => void;
 
+export interface SessionTarget {
+  mode: "pty" | "tmux";
+  slug?: string;
+}
+
 interface AgentContextValue {
   status: AgentStatus;
   detail: string | null;
   shell: string | null;
   sessionId: string | null;
+  sessionMode: "pty" | "tmux";
+  sessionSlug: string | null;
+  attachTo: (target: SessionTarget) => void;
   grid: { cols: number; rows: number };
   notice: string | null;
   dismissNotice: () => void;
@@ -68,9 +76,19 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [detail, setDetail] = useState<string | null>(null);
   const [shell, setShell] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionMode, setSessionMode] = useState<"pty" | "tmux">("pty");
+  const [sessionSlug, setSessionSlug] = useState<string | null>(null);
+  const [target, setTarget] = useState<SessionTarget>({ mode: "pty" });
+  const generation = useRef(0);
   const [grid, setGrid] = useState({ cols: DEFAULT_COLS, rows: DEFAULT_ROWS });
 
   const dismissNotice = useCallback(() => setNotice(null), []);
+
+  const attachTo = useCallback((next: SessionTarget) => {
+    generation.current += 1;
+    setNotice(null);
+    setTarget(next);
+  }, []);
 
   const subscribe = useCallback((listener: FrameListener) => {
     listenersRef.current.add(listener);
@@ -99,9 +117,11 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
-        const session = await client.createSession(DEFAULT_COLS, DEFAULT_ROWS);
+        const session = await client.createSession(DEFAULT_COLS, DEFAULT_ROWS, target);
         if (cancelled) return;
         setSessionId(session.id);
+        setSessionMode(session.mode === "tmux" ? "tmux" : "pty");
+        setSessionSlug(session.slug ?? null);
         setShell(session.shell);
         client.connect();
       } catch (err) {
@@ -117,7 +137,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       client.disconnect();
       clientRef.current = null;
     };
-  }, [settings.host, settings.port, settings.token]);
+  }, [settings.host, settings.port, settings.token, target]);
 
   const sendStdin = useCallback((base64: string) => {
     setNotice(null);
@@ -142,6 +162,9 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       detail,
       shell,
       sessionId,
+      sessionMode,
+      sessionSlug,
+      attachTo,
       grid,
       notice,
       dismissNotice,
@@ -156,6 +179,9 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       detail,
       shell,
       sessionId,
+      sessionMode,
+      sessionSlug,
+      attachTo,
       grid,
       notice,
       dismissNotice,

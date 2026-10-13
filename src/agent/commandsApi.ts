@@ -51,7 +51,7 @@ export class CommandsApi {
     return `http://${this.host}:${this.port}${path}`;
   }
 
-  private async request<T>(path: string, init?: RequestInit & { auth?: string }): Promise<T> {
+  async request<T>(path: string, init?: RequestInit & { auth?: string }): Promise<T> {
     const bearer = init?.auth ?? this.token;
     const response = await fetch(this.url(path), {
       ...init,

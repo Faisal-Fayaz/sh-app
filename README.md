@@ -243,6 +243,19 @@ Guessing them wastes time — dump the view hierarchy instead and read the bound
 Note that `adb shell input text` drops and duplicates characters unpredictably (`sleep` arrives as
 `sleeleeppeppep`). That is an adb artifact, not an app bug — use short strings or real taps.
 
+## Sessions
+
+A session is either **pty** (default) or **tmux**.
+
+- **pty** — ephemeral. Survives a disconnect for two minutes and replays bytes from a ring buffer.
+- **tmux** — named and persistent. Survives indefinitely, and reattaching by name restores real
+  scrollback including across an app restart.
+
+Tap **Sessions** in the header to switch. Named sessions are worth it for long-running work: start
+`deploy` on the laptop, walk away, and pick it up on the phone later exactly where you were.
+
+Everything sharing a token shares the tmux namespace, so treat slugs as a shared space.
+
 ## Reconnecting
 
 The agent holds each session for `SH_DETACH_GRACE` (2 min) after a disconnect, so `?resume=<seq>`
