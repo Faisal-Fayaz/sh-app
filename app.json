@@ -1,15 +1,18 @@
 {
   "expo": {
-    "name": "sh-app",
-    "slug": "sh-app",
+    "name": "dev.sh",
+    "slug": "sh",
+    "description": "A gesture-driven terminal for your own machine, over your own network.",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "dev.sh.terminal"
     },
     "android": {
+      "package": "dev.sh.terminal",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,9 +27,20 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-router"
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
-    "scheme": "shapp",
+    "scheme": "sh",
+    "updates": {
+      "enabled": false
+    },
     "experiments": {
       "typedRoutes": true
     }
