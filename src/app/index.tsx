@@ -1,6 +1,6 @@
 import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Linking, StyleSheet, View } from "react-native";
 
 import { parsePairingUri } from "@/agent/pairing";
 import { useSettings } from "@/state/SettingsProvider";
@@ -21,54 +21,60 @@ export default function Index() {
   useEffect(() => {
     if (!ready || handled) return;
     let cancelled = false;
+    let subscription: { remove: () => void } | null = null;
 
     (async () => {
-      // getInitialURL covers a cold launch; the subscription covers a link that
-      // arrives while the app is already open.
-      const { Linking } = await import("react-native");
-      let url: string | null = null;
       try {
-        url = await Linking.getInitialURL();
-      } catch {
-        url = null;
-      }
-      if (url && !cancelled) {
-        const result = parsePairingUri(url);
-        if (result.ok) {
-          await save({
-            ...settings,
-            host: result.pairing.host,
-            port: result.pairing.port,
-            token: result.pairing.token,
-            writeToken: result.pairing.writeToken || settings.writeToken,
-          });
-          if (cancelled) return;
-          setHandled(true);
-          router.replace("/terminal");
-          return;
+        // getInitialURL covers a cold launch; the listener covers a link that
+        // arrives while the app is already open.
+        let url: string | null = null;
+        try {
+          url = await Linking.getInitialURL();
+        } catch {
+          url = null;
         }
-      }
+        if (cancelled) return;
 
-      const subscription = Linking.addEventListener("url", ({ url: next }) => {
-        const parsed = parsePairingUri(next);
-        if (!parsed.ok) return;
-        void save({
-          ...settings,
-          host: parsed.pairing.host,
-          port: parsed.pairing.port,
-          token: parsed.pairing.token,
-          writeToken: parsed.pairing.writeToken || settings.writeToken,
-        }).then(() => router.replace("/terminal"));
-      });
-      if (cancelled) {
-        subscription.remove();
-        return;
+        if (url) {
+          const result = parsePairingUri(url);
+          if (result.ok) {
+            await save({
+              ...settings,
+              host: result.pairing.host,
+              port: result.pairing.port,
+              token: result.pairing.token,
+              writeToken: result.pairing.writeToken || settings.writeToken,
+            });
+            if (cancelled) return;
+            setHandled(true);
+            router.replace("/terminal");
+            return;
+          }
+        }
+
+        subscription = Linking.addEventListener("url", ({ url: next }) => {
+          const parsed = parsePairingUri(next);
+          if (!parsed.ok) return;
+          void save({
+            ...settings,
+            host: parsed.pairing.host,
+            port: parsed.pairing.port,
+            token: parsed.pairing.token,
+            writeToken: parsed.pairing.writeToken || settings.writeToken,
+          }).then(() => router.replace("/terminal"));
+        });
+      } catch {
+        // Probing for a link is a convenience. If it fails for any reason the app
+        // still has to start, or the user is left staring at a spinner with no
+        // way forward.
+      } finally {
+        if (!cancelled) setHandled(true);
       }
-      setHandled(true);
     })();
 
     return () => {
       cancelled = true;
+      subscription?.remove();
     };
   }, [handled, ready, router, save, settings]);
 
