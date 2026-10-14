@@ -1,6 +1,6 @@
 # sh-app
 
-Android client for [`sh-agent`](../sh-agent) — a terminal that runs on your machine and is driven
+Android client for [`sh-agent`](https://github.com/Faisal-Fayaz/sh-agent) — a terminal that runs on your machine and is driven
 from your phone over your private network.
 
 Expo + React Native, with xterm.js rendered inside a WebView.
