@@ -338,10 +338,25 @@ forever. If the replayed range had already been evicted from the ring buffer, th
 the oldest byte it still holds; the terminal therefore starts from a visible point rather than
 pretending it has a contiguous history.
 
+## iOS
+
+The iOS config is in place and needs no further code: `NSLocalNetworkUsageDescription`
+for local network access, and an App Transport Security policy that permits plain HTTP to
+private ranges and the Tailscale `100.64.0.0/10` block. Unlike Android, iOS supports CIDR
+ranges in `NSExceptionDomains`, so iOS is scoped where Android is blanket.
+
+Two ways to run it:
+
+- **Expo Go on an iPhone.** Free, no Apple account, no build. `npx expo start` and scan.
+  Enough to confirm the gesture layer behaves on iOS.
+- **A standalone build.** Requires the Apple Developer Program ($99/year) for signing. Then
+  `eas build --platform ios --profile development`, and Developer Mode enabled on the device.
+
+The iOS Simulator needs a Mac and is not an option from Linux.
+
 ## Roadmap
 
 - Signing and distribution (needs an Expo account for EAS, or a local Gradle keystore)
-- Verification of the gestures on hardware, which is the gate on the above
 
 ### Not yet verified
 
