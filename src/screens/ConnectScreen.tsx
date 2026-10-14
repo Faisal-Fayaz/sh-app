@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -58,6 +59,13 @@ export function ConnectScreen({ initial, onSave, onCancel, externalError }: Prop
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>sh</Text>
           <Text style={styles.subtitle}>Connect to your machine</Text>
+
+          <TouchableOpacity style={styles.scanButton} onPress={() => router.replace("/pair")}>
+            <Text style={styles.scanLabel}>Scan to pair</Text>
+            <Text style={styles.scanHint}>Point your camera at the QR code the agent printed</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.divider}>or enter details by hand</Text>
 
           <Text style={styles.label}>Host</Text>
           <TextInput
@@ -166,5 +174,17 @@ const styles = StyleSheet.create({
   buttonLabel: { color: "#0b0e14", fontSize: 16, fontWeight: "700" },
   linkButton: { marginTop: 18, alignItems: "center" },
   linkLabel: { color: "#6ba8f5", fontSize: 14 },
+  scanButton: {
+    backgroundColor: "#141926",
+    borderColor: "#2b3a4d",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  scanLabel: { color: "#7fd1b9", fontSize: 16, fontWeight: "700" },
+  scanHint: { color: "#5a6478", fontSize: 11, marginTop: 4, textAlign: "center" },
+  divider: { color: "#3a4256", fontSize: 11, marginVertical: 22, textAlign: "center" },
   footer: { height: 40 },
 });

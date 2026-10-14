@@ -26,7 +26,8 @@
     "src/agent/**/*.ts",
     "src/terminal/**/*.ts",
     "src/gestures/**/*.ts",
-    "scripts/test-sessions.ts"
+    "scripts/test-sessions.ts",
+    "scripts/test-pairing.ts"
   ],
   "exclude": [
     "node_modules",

@@ -35,6 +35,12 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "sh uses the camera only to scan the pairing code shown by your own agent."
+        }
       ]
     ],
     "scheme": "sh",

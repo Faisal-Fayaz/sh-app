@@ -243,6 +243,32 @@ Guessing them wastes time — dump the view hierarchy instead and read the bound
 Note that `adb shell input text` drops and duplicates characters unpredictably (`sleep` arrives as
 `sleeleeppeppep`). That is an adb artifact, not an app bug — use short strings or real taps.
 
+## Pairing
+
+Run the agent and it prints a QR code:
+
+```
+sh-agent listening on 0.0.0.0:8765
+pairing over the local network (192.168.1.20); run Tailscale to pair from anywhere
+
+Pair your phone by scanning this, or open the link:
+
+█████████████████████████████████████████████
+██ ▄▄▄▄▄ █ ▀ ▄▄▄▀▄ ▀█▀▀▄▀ ▀██▀▀▀█ ▄▄▄▄▄ ██
+...
+
+sh://connect?host=192.168.1.20&port=8765&token=...
+```
+
+Tap **Scan to pair** in the app and point the camera at it. The link also works if you send it to
+yourself and tap it, which is handy when the terminal is on a screen you cannot point a phone at.
+
+**Enter details by hand** is always one tap away, because the camera needs a permission prompt,
+can be refused, and cannot see a terminal you are not sitting in front of.
+
+The token lives in `~/.config/sh/agent.env` on the host, so restarting the agent does not
+unpair a phone. Override it with `SH_TOKEN` if you need to.
+
 ## Sessions
 
 A session is either **pty** (default) or **tmux**.
