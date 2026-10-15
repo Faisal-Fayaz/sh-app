@@ -39,7 +39,7 @@ export function CommandBlock({ command }: Props) {
 
   return (
     <View style={styles.row}>
-      <Text style={styles.command} selectable numberOfLines={1}>
+      <Text style={styles.command} selectable>
         {command}
       </Text>
       <TouchableOpacity
