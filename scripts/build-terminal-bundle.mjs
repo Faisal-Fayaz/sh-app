@@ -21,7 +21,7 @@ const chunks = [HEADER];
 
 for (const [name, path] of SOURCES) {
   const raw = readFileSync(path);
-  const encoded = Buffer.from(raw).toString("base64");
+  const encoded = Buffer.from(raw).toString("base64"); // eslint-disable-line no-undef -- Node global
   chunks.push(`\nexport const ${name}_B64 =\n  ${JSON.stringify(encoded)};\n`);
   const kb = (raw.length / 1024).toFixed(1);
   const kbB64 = (encoded.length / 1024).toFixed(1);
