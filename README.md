@@ -48,6 +48,8 @@ on both Android and iOS without any install at all.
 - **Pinch to resize the text**, so a narrow screen is not a cramped one
 - **Named tmux sessions** that outlive the app, so a long build keeps going
 - **Scan to pair** — read the agent's QR code instead of typing an address and a token
+- **Explains itself** — first run walks you through installing the agent, and a `?` on the
+  terminal lists every gesture and key, generated from the same table the gesture code uses
 
 See the agent README for the wire protocol and the resume design.
 
