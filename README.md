@@ -21,7 +21,11 @@ uv tool install sh-agent        # or: pipx install sh-agent
 **Android.** Download the preview build and open it. It installs by sideloading, so you will need
 to allow installs from your browser.
 
-[sh preview 1.0.0 — 124 MB, Android arm64](https://expo.dev/artifacts/eas/MTT6SThZPhJ2-E9dKo0lu74hn4dTtMVqcEREFHKEOXA.apk)
+[sh preview 1.0.0 — 124 MB, Android](https://expo.dev/artifacts/eas/Ju0x9DRWZWp4799kDYI93XL0knTFd-CxxX8aHJpzMhw.apk)
+
+One APK carrying all four Android ABIs (`arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`), which is
+most of why it is this size. It is one file that installs on anything rather than four files
+built for specific phones.
 
 This is a standalone build: the app is inside the APK, so it runs without your computer. It is
 sideloaded rather than store-signed, so Play Protect will warn about it, and it is not on the
