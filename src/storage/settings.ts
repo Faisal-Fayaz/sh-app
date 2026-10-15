@@ -24,6 +24,16 @@ const FONT_SIZE_KEY = "sh.fontSize";
 const SEEN_WELCOME_KEY = "sh.seenWelcome";
 const SEEN_GESTURES_KEY = "sh.seenGestures";
 
+/**
+ * Replays the first-run screens on every launch, in development only.
+ *
+ * An already-paired phone can never reach them by design, and Expo Go has no way
+ * to clear the stored flags on a device, so this is the only way to look at them
+ * while building them. __DEV__ is false in any release build, so what ships is
+ * always the resolveSeenFlag backfill below.
+ */
+const PREVIEW_ONBOARDING = __DEV__;
+
 export const DEFAULT_SETTINGS: Settings = {
   host: "",
   port: "8765",
@@ -56,8 +66,8 @@ export async function loadSettings(): Promise<Settings> {
     token: token ?? DEFAULT_SETTINGS.token,
     writeToken: writeToken ?? DEFAULT_SETTINGS.writeToken,
     fontSize: clampFontSize(Number(fontSize) || DEFAULT_SETTINGS.fontSize),
-    seenWelcome: resolveSeenFlag(seenWelcome, alreadyPaired),
-    seenGestures: resolveSeenFlag(seenGestures, alreadyPaired),
+    seenWelcome: PREVIEW_ONBOARDING ? false : resolveSeenFlag(seenWelcome, alreadyPaired),
+    seenGestures: PREVIEW_ONBOARDING ? false : resolveSeenFlag(seenGestures, alreadyPaired),
   };
 }
 
