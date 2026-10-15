@@ -1,9 +1,24 @@
 # sh-app
 
-Android client for [`sh-agent`](https://github.com/Faisal-Fayaz/sh-agent) — a terminal that runs on your machine and is driven
-from your phone over your private network.
+The phone client for [`sh-agent`](https://github.com/Faisal-Fayaz/sh-agent) — a terminal that runs
+on your own machine and is driven from your phone, over your own network.
 
-Expo + React Native, with xterm.js rendered inside a WebView.
+Expo + React Native, with xterm.js rendered inside a WebView. Works on Android and iOS.
+
+You need [`sh-agent`](https://github.com/Faisal-Fayaz/sh-agent) running on the machine you want a
+shell into. This repository is only the app.
+
+## Getting the app
+
+**Android.** Download the preview APK linked below and open it. It installs by sideloading, so
+you will need to allow installs from your browser.
+
+**iOS.** Install [Expo Go](https://apps.apple.com/app/expo-go/id982107779) and run `npx expo start`
+on the machine running the agent, then scan the QR from the terminal. Expo Go loads the app from
+there rather than shipping it bundled, which is why it needs that server running.
+
+For a standalone iOS build you need an Apple Developer Program membership, and a build produced
+with `eas build --platform ios --profile preview`.
 
 ## What it does
 
@@ -12,7 +27,11 @@ Expo + React Native, with xterm.js rendered inside a WebView.
 - **Gesture control keys** — two-finger swipe for arrows, `Ctrl-C` and `Ctrl-D`, because a single
   finger belongs to text selection
 - **Command palette** — swipe a card right to run it *in the live shell*, left to edit it
-- **Survives network drops** — reconnect replays exactly the bytes you missed
+- **Survives network drops** — reconnect replays exactly the bytes you missed, and a host that is
+  merely asleep is waited out rather than given up on
+- **Pinch to resize the text**, so a narrow screen is not a cramped one
+- **Named tmux sessions** that outlive the app, so a long build keeps going
+- **Scan to pair** — read the agent's QR code instead of typing an address and a token
 
 See the agent README for the wire protocol and the resume design.
 
