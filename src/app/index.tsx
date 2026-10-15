@@ -44,6 +44,9 @@ export default function Index() {
               port: result.pairing.port,
               token: result.pairing.token,
               writeToken: result.pairing.writeToken || settings.writeToken,
+              // A pairing link is proof the agent exists, so the install
+              // walkthrough has nothing left to tell this user.
+              seenWelcome: true,
             });
             if (cancelled) return;
             setHandled(true);
@@ -61,6 +64,7 @@ export default function Index() {
             port: parsed.pairing.port,
             token: parsed.pairing.token,
             writeToken: parsed.pairing.writeToken || settings.writeToken,
+            seenWelcome: true,
           }).then(() => router.replace("/terminal"));
         });
       } catch {
@@ -84,6 +88,10 @@ export default function Index() {
         <ActivityIndicator color="#7fd1b9" />
       </View>
     );
+  }
+
+  if (!settings.seenWelcome) {
+    return <Redirect href="/welcome" />;
   }
 
   return <Redirect href={configured ? "/terminal" : "/connect"} />;

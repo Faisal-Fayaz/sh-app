@@ -19,6 +19,7 @@ import * as Haptics from "expo-haptics";
 import { useAgent } from "@/agent/AgentProvider";
 import type { AgentFrame } from "@/agent/AgentClient";
 import { ControlBar } from "@/components/ControlBar";
+import { GestureCoach } from "@/components/GestureCoach";
 import {
   clampFontSize,
   DEFAULT_FONT_SIZE,
@@ -64,6 +65,7 @@ interface Props {
   onOpenSettings: () => void;
   onOpenPalette: () => void;
   onOpenSessions: () => void;
+  onOpenHelp: () => void;
   retryNow?: () => void;
 }
 
@@ -72,6 +74,7 @@ export function TerminalScreen({
   onOpenSettings,
   onOpenPalette,
   onOpenSessions,
+  onOpenHelp,
   retryNow,
 }: Props) {
   const webviewRef = useRef<WebView>(null);
@@ -340,6 +343,15 @@ export function TerminalScreen({
           <TouchableOpacity onPress={onOpenSettings} hitSlop={10} style={styles.headerButton}>
             <Text style={styles.headerLabel}>Settings</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onOpenHelp}
+            hitSlop={10}
+            style={styles.headerButton}
+            accessibilityRole="button"
+            accessibilityLabel="How to use this"
+          >
+            <Text style={styles.headerLabel}>?</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -421,6 +433,13 @@ export function TerminalScreen({
           </View>
         )}
       </KeyboardAvoidingView>
+
+      {settings.seenGestures ? null : (
+        <GestureCoach
+          onOpenHelp={onOpenHelp}
+          onDismiss={() => void save({ ...settings, seenGestures: true })}
+        />
+      )}
     </SafeAreaView>
   );
 }

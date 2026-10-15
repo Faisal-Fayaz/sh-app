@@ -58,3 +58,60 @@ export function mapSingleFingerPan(vector: SwipeVector, config: GestureConfig = 
 export function mapGesture(vector: SwipeVector, config: GestureConfig = DEFAULT_GESTURE): GestureAction {
   return vector.pointers >= 2 ? mapTwoFinger(vector, config) : mapSingleFingerPan(vector, config);
 }
+
+export interface GestureReferenceEntry {
+  id: string;
+  /** How the user performs it, in words. */
+  label: string;
+  /** What it does, in words. */
+  outcome: string;
+  /** The gesture that must produce `expected`, so a test can prove the table is honest. */
+  sample: SwipeVector;
+  expected: GestureAction;
+}
+
+/**
+ * The gestures this app responds to, as data.
+ *
+ * The help screen renders from this table and the test suite replays `sample`
+ * through `mapGesture` to confirm each `expected`. That is what keeps the
+ * instructions from quietly describing behaviour that no longer exists -- the
+ * failure mode of every hand-written gesture guide.
+ */
+export const GESTURE_REFERENCE: GestureReferenceEntry[] = [
+  {
+    id: "arrow-right",
+    label: "Two-finger swipe right",
+    outcome: "Moves the cursor right",
+    sample: { dx: 120, dy: 0, pointers: 2 },
+    expected: { kind: "key", key: "right" },
+  },
+  {
+    id: "arrow-left",
+    label: "Two-finger swipe left",
+    outcome: "Moves the cursor left",
+    sample: { dx: -120, dy: 0, pointers: 2 },
+    expected: { kind: "key", key: "left" },
+  },
+  {
+    id: "interrupt",
+    label: "Two-finger swipe up",
+    outcome: "Ctrl-C, to interrupt what is running",
+    sample: { dx: 0, dy: -120, pointers: 2 },
+    expected: { kind: "key", key: "ctrl-c" },
+  },
+  {
+    id: "eof",
+    label: "Two-finger swipe down",
+    outcome: "Ctrl-D, end of input",
+    sample: { dx: 0, dy: 120, pointers: 2 },
+    expected: { kind: "key", key: "ctrl-d" },
+  },
+  {
+    id: "scrollback",
+    label: "One-finger drag up or down",
+    outcome: "Scrolls the scrollback",
+    sample: { dx: 0, dy: 120, pointers: 1 },
+    expected: { kind: "scroll", lines: -2 },
+  },
+];

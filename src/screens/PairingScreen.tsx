@@ -1,4 +1,5 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -39,7 +40,11 @@ export function PairingScreen() {
           port: result.pairing.port,
           token: result.pairing.token,
           writeToken: result.pairing.writeToken || settings.writeToken,
+          seenWelcome: true,
         });
+        // The screen is about to be replaced, so the confirmation has to be
+        // felt rather than read.
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace("/terminal");
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -55,6 +60,17 @@ export function PairingScreen() {
     },
     [apply],
   );
+
+  // Reached by replace from the welcome screen, where there is nothing behind
+  // this one, so the back button has to have somewhere to go rather than doing
+  // nothing when tapped.
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace("/welcome");
+  }, [router]);
 
   if (!permission) {
     return (
@@ -77,7 +93,7 @@ export function PairingScreen() {
           <TouchableOpacity style={styles.button} onPress={() => void requestPermission()}>
             <Text style={styles.buttonLabel}>Allow camera</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.link} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.link} onPress={() => router.replace("/connect?manual=1")}>
             <Text style={styles.linkLabel}>Enter details by hand instead</Text>
           </TouchableOpacity>
         </View>
@@ -88,7 +104,7 @@ export function PairingScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => router.back()} hitSlop={10}>
+        <TouchableOpacity style={styles.headerButton} onPress={goBack} hitSlop={10}>
           <Text style={styles.headerLabel}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Scan to pair</Text>
@@ -111,7 +127,7 @@ export function PairingScreen() {
         <TouchableOpacity style={styles.link} onPress={() => void Linking.openSettings()}>
           <Text style={styles.linkLabel}>Camera settings</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.link} onPress={() => router.replace("/connect")}>
+        <TouchableOpacity style={styles.link} onPress={() => router.replace("/connect?manual=1")}>
           <Text style={styles.linkLabel}>Enter details by hand instead</Text>
         </TouchableOpacity>
       </View>

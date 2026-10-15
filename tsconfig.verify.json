@@ -26,8 +26,10 @@
     "src/agent/**/*.ts",
     "src/terminal/**/*.ts",
     "src/gestures/**/*.ts",
+    "src/storage/onboarding.ts",
     "scripts/test-sessions.ts",
-    "scripts/test-pairing.ts"
+    "scripts/test-pairing.ts",
+    "scripts/test-onboarding.ts"
   ],
   "exclude": [
     "node_modules",

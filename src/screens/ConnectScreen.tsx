@@ -20,15 +20,19 @@ interface Props {
   onSave: (settings: Settings) => Promise<void>;
   onCancel?: () => void;
   externalError?: string | null;
+  /** Start with the manual form open, for the route that asks for it. */
+  initialManual?: boolean;
 }
 
-export function ConnectScreen({ initial, onSave, onCancel, externalError }: Props) {
+export function ConnectScreen({ initial, onSave, onCancel, externalError, initialManual }: Props) {
   const [host, setHost] = useState(initial.host);
   const [port, setPort] = useState(initial.port);
   const [token, setToken] = useState(initial.token);
   const [writeToken, setWriteToken] = useState(initial.writeToken);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [manual, setManual] = useState(Boolean(initialManual));
+  const [advanced, setAdvanced] = useState(false);
 
   const canSubmit = useMemo(() => host.trim().length > 0 && token.trim().length > 0, [host, token]);
 
@@ -65,70 +69,105 @@ export function ConnectScreen({ initial, onSave, onCancel, externalError }: Prop
             <Text style={styles.scanHint}>Point your camera at the QR code the agent printed</Text>
           </TouchableOpacity>
 
-          <Text style={styles.divider}>or enter details by hand</Text>
+          {onCancel ? null : (
+            <TouchableOpacity style={styles.helpLink} onPress={() => router.replace("/welcome")}>
+              <Text style={styles.helpLabel}>Not set up yet? Install the agent first</Text>
+            </TouchableOpacity>
+          )}
 
-          <Text style={styles.label}>Host</Text>
-          <TextInput
-            style={styles.input}
-            value={host}
-            onChangeText={setHost}
-            placeholder="100.x.y.z or 192.168.1.10"
-            placeholderTextColor="#5a6478"
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-          />
-          <Text style={styles.hint}>Your Tailscale address. Same Wi-Fi LAN address works in development.</Text>
-
-          <Text style={styles.label}>Port</Text>
-          <TextInput
-            style={styles.input}
-            value={port}
-            onChangeText={setPort}
-            placeholder="8765"
-            placeholderTextColor="#5a6478"
-            keyboardType="number-pad"
-          />
-
-          <Text style={styles.label}>Token</Text>
-          <TextInput
-            style={styles.input}
-            value={token}
-            onChangeText={setToken}
-            placeholder="SH_TOKEN from your agent"
-            placeholderTextColor="#5a6478"
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-          />
-          <Text style={styles.hint}>Stored in the device keystore, never in plain text.</Text>
-
-          <Text style={styles.label}>Write token (optional)</Text>
-          <TextInput
-            style={styles.input}
-            value={writeToken}
-            onChangeText={setWriteToken}
-            placeholder="SH_WRITE_TOKEN, blank for read-only"
-            placeholderTextColor="#5a6478"
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-          />
-          <Text style={styles.hint}>
-            Only needed to create or edit commands from the phone. Leave blank to keep the agent
-            read-only.
-          </Text>
-
-          {error ?? externalError ? <Text style={styles.error}>{error ?? externalError}</Text> : null}
-
-          <TouchableOpacity
-            style={[styles.button, !canSubmit && styles.buttonDisabled]}
-            onPress={submit}
-            disabled={!canSubmit || busy}
-            activeOpacity={0.8}
-          >
-            {busy ? <ActivityIndicator color="#0b0e14" /> : <Text style={styles.buttonLabel}>Connect</Text>}
+          <TouchableOpacity style={styles.dividerButton} onPress={() => setManual((open) => !open)}>
+            <Text style={styles.divider}>
+              {manual ? "hide manual entry" : "or enter details by hand"}
+            </Text>
           </TouchableOpacity>
+
+          {manual ? (
+            <>
+              <Text style={styles.label}>Host</Text>
+              <TextInput
+                style={styles.input}
+                value={host}
+                onChangeText={setHost}
+                placeholder="100.x.y.z or 192.168.1.10"
+                placeholderTextColor="#5a6478"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+              <Text style={styles.hint}>
+                Your Tailscale address. The agent prints the address to use when it starts.
+              </Text>
+
+              <Text style={styles.label}>Port</Text>
+              <TextInput
+                style={styles.input}
+                value={port}
+                onChangeText={setPort}
+                placeholder="8765"
+                placeholderTextColor="#5a6478"
+                keyboardType="number-pad"
+              />
+
+              <Text style={styles.label}>Token</Text>
+              <TextInput
+                style={styles.input}
+                value={token}
+                onChangeText={setToken}
+                placeholder="the token from your agent"
+                placeholderTextColor="#5a6478"
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+              />
+              <Text style={styles.hint}>Stored in the device keystore, never in plain text.</Text>
+
+              <TouchableOpacity
+                style={styles.advancedButton}
+                onPress={() => setAdvanced((open) => !open)}
+              >
+                <Text style={styles.advancedLabel}>
+                  {advanced ? "− Advanced" : "+ Advanced"}
+                </Text>
+              </TouchableOpacity>
+
+              {advanced ? (
+                <>
+                  <Text style={styles.label}>Write token (optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={writeToken}
+                    onChangeText={setWriteToken}
+                    placeholder="blank for read-only"
+                    placeholderTextColor="#5a6478"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    secureTextEntry
+                  />
+                  <Text style={styles.hint}>
+                    Only needed to create or edit commands from the phone. Leave blank to keep the
+                    agent read-only.
+                  </Text>
+                </>
+              ) : null}
+
+              {error ?? externalError ? (
+                <Text style={styles.error}>{error ?? externalError}</Text>
+              ) : null}
+
+              <TouchableOpacity
+                style={[styles.button, !canSubmit && styles.buttonDisabled]}
+                onPress={submit}
+                disabled={!canSubmit || busy}
+                activeOpacity={0.8}
+              >
+                {busy ? (
+                  <ActivityIndicator color="#0b0e14" />
+                ) : (
+                  <Text style={styles.buttonLabel}>Connect</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : null}
 
           {onCancel ? (
             <TouchableOpacity style={styles.linkButton} onPress={onCancel}>
@@ -180,11 +219,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: "center",
   },
   scanLabel: { color: "#7fd1b9", fontSize: 16, fontWeight: "700" },
   scanHint: { color: "#5a6478", fontSize: 11, marginTop: 4, textAlign: "center" },
-  divider: { color: "#3a4256", fontSize: 11, marginVertical: 22, textAlign: "center" },
+  helpLink: { marginTop: 14, alignItems: "center" },
+  helpLabel: { color: "#6ba8f5", fontSize: 13 },
+  dividerButton: { paddingVertical: 4 },
+  divider: { color: "#3a4256", fontSize: 11, marginVertical: 18, textAlign: "center" },
+  advancedButton: { paddingVertical: 4, marginBottom: 10 },
+  advancedLabel: { color: "#6ba8f5", fontSize: 13 },
   footer: { height: 40 },
 });

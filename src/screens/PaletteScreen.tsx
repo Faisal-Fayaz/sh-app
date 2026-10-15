@@ -182,6 +182,21 @@ export function PaletteScreen({ onClose, onRan }: Props) {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
+          {groups.length === 0 && query.trim().length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>No commands yet</Text>
+              <Text style={styles.emptyBody}>
+                {readOnly
+                  ? "This agent has none saved. Adding one needs a write token in settings."
+                  : "Save the ones you type often and they run in the live shell with a swipe."}
+              </Text>
+            </View>
+          ) : null}
+          {groups.length === 0 && query.trim().length > 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>Nothing matches “{query.trim()}”</Text>
+            </View>
+          ) : null}
           {groups.map((group) => (
             <View key={group.name} style={styles.group}>
               <Text style={styles.groupName}>{group.name}</Text>
@@ -435,6 +450,15 @@ const styles = StyleSheet.create({
   cardBadge: { color: "#5a6478", fontSize: 10, textTransform: "uppercase" },
   cardCommand: { color: "#7fd1b9", fontSize: 12, fontFamily: "monospace", marginTop: 4 },
   cardDescription: { color: "#5a6478", fontSize: 12, marginTop: 4 },
+  empty: { paddingHorizontal: 24, paddingVertical: 28, alignItems: "center" },
+  emptyTitle: { color: "#c8d3e0", fontSize: 15, fontWeight: "600", textAlign: "center" },
+  emptyBody: {
+    color: "#5a6478",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+    textAlign: "center",
+  },
   addButton: {
     borderRadius: 12,
     borderWidth: 1,

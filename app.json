@@ -43,7 +43,7 @@
     "android": {
       "package": "dev.sh.terminal",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0b0e14",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -69,6 +69,15 @@
         "expo-camera",
         {
           "cameraPermission": "sh uses the camera only to scan the pairing code shown by your own agent."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0b0e14",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain"
         }
       ]
     ],
