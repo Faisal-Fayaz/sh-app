@@ -6,7 +6,11 @@ on your own machine and is driven from your phone, over your own network.
 Expo + React Native, with xterm.js rendered inside a WebView. Works on Android and iOS.
 
 You need [`sh-agent`](https://github.com/Faisal-Fayaz/sh-agent) running on the machine you want a
-shell into. This repository is only the app.
+shell into. This repository is only the app. Install it on that machine with:
+
+```bash
+uv tool install sh-agent        # or: pipx install sh-agent
+```
 
 ## Getting the app
 
