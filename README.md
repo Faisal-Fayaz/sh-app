@@ -5,7 +5,9 @@ on your own machine and is driven from your phone, over your own network.
 
 Expo + React Native, with xterm.js rendered inside a WebView. Works on Android and iOS.
 
-What changed in each release is in the [changelog](CHANGELOG.md).
+What changed in each release is in the [changelog](CHANGELOG.md). Nothing is sent
+to the developer and there is no analytics in the app; [the privacy
+policy](PRIVACY.md) is specific about it.
 
 You need [`sh-agent`](https://github.com/Faisal-Fayaz/sh-agent) running on the machine you want a
 shell into. This repository is only the app. Install it on that machine with:
@@ -395,7 +397,8 @@ The iOS Simulator needs a Mac and is not an option from Linux.
 
 ## Roadmap
 
-- Signing and distribution (needs an Expo account for EAS, or a local Gradle keystore)
+- Store distribution (Play needs a $25 account and a review queue; iOS needs the Apple Developer
+  Program). The preview APK is signed with an EAS-managed keystore, so sideloading works today.
 
 ### Not yet verified
 
@@ -406,6 +409,3 @@ The iOS Simulator needs a Mac and is not an option from Linux.
   two-finger drag are reliably told apart. That last one currently rests on both sides
   raising their work through `runOnJS` in order, which is reasoned rather than tested.
   The `A-`/`A+` keys are the fallback and bypass the gesture layer entirely.
-- No signed APK has been produced. `expo export --platform android` passes and `expo-doctor` is
-  clean (21/21), so the release JS bundle is valid, but installing it on hardware needs either an
-  Expo account for `eas build` or a local keystore.
