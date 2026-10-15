@@ -1,5 +1,19 @@
 export type AgentStatus = "idle" | "connecting" | "open" | "reconnecting" | "closed" | "error";
 
+/**
+ * A 100.64.0.0/10 address, the range Tailscale hands out.
+ *
+ * Worth recognising because it fails in one specific way: the agent only answers
+ * on that address while Tailscale is up, so an unreachable one usually means the
+ * phone's tunnel is off rather than the machine being asleep.
+ */
+export function isTailnetAddress(host: string): boolean {
+  const parts = host.trim().split(".");
+  if (parts.length !== 4 || parts[0] !== "100") return false;
+  const second = Number(parts[1]);
+  return Number.isInteger(second) && second >= 64 && second <= 127;
+}
+
 export interface AgentFrame {
   type: string;
   seq?: number;
@@ -253,10 +267,13 @@ export class AgentClient {
     // cellular a single tower handoff is enough to blow through a short budget, which
     // used to leave the app dead until the user reconnected by hand.
     const endpoint = `${this.options.host}:${this.options.port}`;
+    const tailnetHint = isTailnetAddress(this.options.host)
+      ? " Is Tailscale running on this phone?"
+      : "";
     this.options.onStatus(
       "reconnecting",
       this.attempt >= 3
-        ? `Still trying to reach ${endpoint} (${this.attempt} tries). It may be asleep or out of range.`
+        ? `Still trying to reach ${endpoint} (${this.attempt} tries). It may be asleep or out of range.${tailnetHint}`
         : `retrying in ${Math.round(delay / 100) / 10}s`,
     );
 

@@ -29,7 +29,8 @@
     "src/storage/onboarding.ts",
     "scripts/test-sessions.ts",
     "scripts/test-pairing.ts",
-    "scripts/test-onboarding.ts"
+    "scripts/test-onboarding.ts",
+    "scripts/test-reachability.ts"
   ],
   "exclude": [
     "node_modules",

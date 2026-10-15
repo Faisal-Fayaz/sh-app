@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CommandBlock } from "@/components/CommandBlock";
@@ -10,14 +10,20 @@ interface Props {
   onContinue: (destination: WelcomeDestination) => Promise<void> | void;
 }
 
+interface StepAction {
+  label: string;
+  url: string;
+}
+
 interface StepProps {
   index: number;
   title: string;
   body: string;
   command?: string;
+  action?: StepAction;
 }
 
-function Step({ index, title, body, command }: StepProps) {
+function Step({ index, title, body, command, action }: StepProps) {
   return (
     <View style={styles.step}>
       <View style={styles.stepHead}>
@@ -28,6 +34,16 @@ function Step({ index, title, body, command }: StepProps) {
       </View>
       <Text style={styles.stepBody}>{body}</Text>
       {command ? <CommandBlock command={command} /> : null}
+      {action ? (
+        <TouchableOpacity
+          onPress={() => void Linking.openURL(action.url)}
+          activeOpacity={0.7}
+          accessibilityRole="link"
+          accessibilityLabel={action.label}
+        >
+          <Text style={styles.stepLink}>{action.label} →</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -74,11 +90,16 @@ export function WelcomeScreen({ onContinue }: Props) {
           title="Scan the code"
           body="Keep the agent running, then scan what it printed. You land straight in a shell."
         />
+        <Step
+          index={4}
+          title="Go remote, when you want it"
+          body="Optional. With Tailscale on this machine and on your phone, the same code keeps working away from home instead of only on your Wi-Fi."
+          action={{ label: "Get Tailscale", url: "https://tailscale.com/download" }}
+        />
 
         <View style={styles.caveat}>
           <Text style={styles.caveatText}>
-            No Windows yet — the agent needs a POSIX pty. Reaching your machine from outside your
-            home network needs Tailscale on both devices.
+            No Windows yet — the agent needs a POSIX pty, so macOS and Linux only.
           </Text>
         </View>
 
@@ -125,6 +146,7 @@ const styles = StyleSheet.create({
   numberText: { color: "#7fd1b9", fontSize: 13, fontWeight: "700" },
   stepTitle: { color: "#eef3fa", fontSize: 17, fontWeight: "600" },
   stepBody: { color: "#8aa4c8", fontSize: 13, lineHeight: 19 },
+  stepLink: { color: "#6ba8f5", fontSize: 13, fontWeight: "600", marginTop: 10 },
   caveat: {
     borderLeftColor: "#2b3a4d",
     borderLeftWidth: 2,
