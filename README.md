@@ -10,8 +10,16 @@ shell into. This repository is only the app.
 
 ## Getting the app
 
-**Android.** Download the preview APK linked below and open it. It installs by sideloading, so
-you will need to allow installs from your browser.
+**Android.** Build or download an APK and open it; it installs by sideloading, so you will need
+to allow installs from your browser. To build one:
+
+```bash
+npx eas-cli@latest build --platform android --profile preview
+```
+
+The build page gives you a direct download link. The `development` profile instead produces a
+client that loads its JavaScript from your machine and so needs `npx expo start` running — useful
+while changing the app, not for handing to someone else.
 
 **iOS.** Install [Expo Go](https://apps.apple.com/app/expo-go/id982107779) and run `npx expo start`
 on the machine running the agent, then scan the QR from the terminal. Expo Go loads the app from
