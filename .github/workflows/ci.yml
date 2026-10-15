@@ -1,0 +1,83 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify (node 24)
+    runs-on: ubuntu-latest
+
+    # The integration checks dial a real agent on 127.0.0.1:8765 and need to
+    # authenticate to it. These are the same throwaway values the README tells
+    # you to use locally.
+    env:
+      SH_TOKEN: dev-token
+      SH_WRITE_TOKEN: dev-write-token
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      # Puppeteer downloads its own Chromium during npm ci, which is slow and
+      # occasionally flaky. Keyed on the lockfile, so it re-downloads only when
+      # puppeteer itself changes.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      # Installs the dependencies and runs postinstall, which regenerates the
+      # terminal bundle -- so a stale src/terminal/generated/ cannot pass here.
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - uses: astral-sh/setup-uv@v5
+
+      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # The agent is cloned from main rather than installed from PyPI on
+      # purpose. The two repositories are one product, and the failure worth
+      # catching early is the app and the agent drifting apart at PR time,
+      # not the app working against whatever shipped last.
+      - name: install the agent from its main branch
+        run: |
+          git clone --depth 1 https://github.com/Faisal-Fayaz/sh-agent.git /tmp/sh-agent
+          uv tool install --force /tmp/sh-agent
+
+      # SH_HOST is pinned so the agent does not have to guess: a CI runner has
+      # no tailnet, and the fallback there is every interface.
+      - name: start the agent
+        run: |
+          nohup env SH_HOST=127.0.0.1 sh-agent > /tmp/agent.log 2>&1 &
+          for _ in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:8765/health >/dev/null; then
+              echo "agent is up"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "::error::the agent never came up"
+          cat /tmp/agent.log
+          exit 1
+
+      # Unit suites, then the three that drive the app's real client, bridge and
+      # CommandsApi against the agent above.
+      - run: npm run verify:all
+
+      - name: show the agent log when something failed
+        if: failure()
+        run: cat /tmp/agent.log
