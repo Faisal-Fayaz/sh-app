@@ -10,23 +10,27 @@ shell into. This repository is only the app.
 
 ## Getting the app
 
-**Android.** Build or download an APK and open it; it installs by sideloading, so you will need
-to allow installs from your browser. To build one:
+**Android.** Download the preview build and open it. It installs by sideloading, so you will need
+to allow installs from your browser.
+
+[sh preview 1.0.0 — 124 MB, Android arm64](https://expo.dev/artifacts/eas/MTT6SThZPhJ2-E9dKo0lu74hn4dTtMVqcEREFHKEOXA.apk)
+
+This is a standalone build: the app is inside the APK, so it runs without your computer. It is
+sideloaded rather than store-signed, so Play Protect will warn about it, and it is not on the
+Play Store.
+
+To produce your own:
 
 ```bash
 npx eas-cli@latest build --platform android --profile preview
 ```
 
-The build page gives you a direct download link. The `development` profile instead produces a
-client that loads its JavaScript from your machine and so needs `npx expo start` running — useful
-while changing the app, not for handing to someone else.
+The `development` profile is different on purpose: it loads its JavaScript from your machine and
+needs `npx expo start` running. Useful while changing the app, not for handing to someone else.
 
-**iOS.** Install [Expo Go](https://apps.apple.com/app/expo-go/id982107779) and run `npx expo start`
-on the machine running the agent, then scan the QR from the terminal. Expo Go loads the app from
-there rather than shipping it bundled, which is why it needs that server running.
-
-For a standalone iOS build you need an Apple Developer Program membership, and a build produced
-with `eas build --platform ios --profile preview`.
+**Either platform, quickest route.** Install [Expo Go](https://expo.dev/go) from the Play Store or
+the App Store, run `npx expo start` in this repo, and scan its QR. It gives you the current code
+on both Android and iOS without any install at all.
 
 ## What it does
 
