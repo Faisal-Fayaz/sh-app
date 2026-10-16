@@ -76,7 +76,7 @@ export function WelcomeScreen({ onContinue }: Props) {
         <Step
           index={1}
           title="Install the agent"
-          body="On the machine you want to reach. It needs Python 3.11 or newer on macOS or Linux."
+            body="On the machine you want to reach. It needs Python 3.11 or newer on macOS, Linux or Windows."
           command="uv tool install sh-agent"
         />
         <Step
@@ -99,7 +99,8 @@ export function WelcomeScreen({ onContinue }: Props) {
 
         <View style={styles.caveat}>
           <Text style={styles.caveatText}>
-            No Windows yet — the agent needs a POSIX pty, so macOS and Linux only.
+              Windows works too, for plain shells. Named tmux sessions stay on macOS
+              and Linux, where tmux actually runs.
           </Text>
         </View>
 

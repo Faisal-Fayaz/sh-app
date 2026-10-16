@@ -14,6 +14,7 @@ shell into. This repository is only the app. Install it on that machine with:
 
 ```bash
 uv tool install sh-agent        # or: pipx install sh-agent
+# Windows: the installer in the agent repo's README is the whole setup
 ```
 
 ## Getting the app
